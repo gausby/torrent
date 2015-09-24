@@ -36,6 +36,11 @@ defimpl Bencode.Encoder, for: Map do
   def encode(data),
     do: "d#{Enum.map_join(data, &encode_pair/1)}e"
 
-  defp encode_pair({key, value}),
+  defp encode_pair({key, value}) when is_bitstring(key),
     do: "#{Bencode.Encoder.encode key}#{Bencode.Encoder.encode value}"
+
+  defp encode_pair({key, value}) when is_atom(key) do
+    key_string = Atom.to_string key
+    "#{Bencode.Encoder.encode key_string}#{Bencode.Encoder.encode value}"
+  end
 end

@@ -18,5 +18,6 @@ defmodule Bencode.EncoderTest do
 
   test "Bencode encoding dictionaries" do
     assert Bencode.Encoder.encode(%{"bar" => "spam", "foo" => 42}) == "d3:bar4:spam3:fooi42ee"
+    assert Bencode.Encoder.encode(%{foo: "bar"}) == "d3:foo3:bare"
   end
 end
