@@ -12,14 +12,14 @@ defmodule Bencode.Decoder do
     do: decode_list(data)
   defp do_decode(<<"d", data::binary>>),
     do: decode_dictionary(data)
-  defp do_decode(data),
+  defp do_decode(<<first, _::binary>> = data) when first in ?0..?9,
     do: decode_string(data)
 
   # integer
   defp decode_integer(data, acc \\ [])
   defp decode_integer(<<"e", rest::binary>>, acc),
     do: {prepare_integer(acc), rest}
-  defp decode_integer(<<current, data::binary>>, acc),
+  defp decode_integer(<<current, data::binary>>, acc) when current == ?- or current in ?0..?9,
     do: decode_integer(data, [current|acc])
 
   # string
@@ -29,8 +29,8 @@ defmodule Bencode.Decoder do
     <<string::size(length)-binary, rest::binary>> = data
     {string, rest}
   end
-  defp decode_string(<<a, data::binary>>, acc),
-    do: decode_string(data, [a|acc])
+  defp decode_string(<<current, data::binary>>, acc) when current in ?0..?9,
+    do: decode_string(data, [current|acc])
 
   # list
   defp decode_list(data, acc \\ [])
