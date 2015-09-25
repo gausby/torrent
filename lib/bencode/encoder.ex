@@ -14,6 +14,7 @@ defprotocol Bencode.Encoder do
     iex> Bencode.Encoder.encode(%{"bar" => "spam", "foo" => 42})
     "d3:bar4:spam3:fooi42ee"
   """
+  @spec encode(any) :: String.t
   def encode(data)
 end
 

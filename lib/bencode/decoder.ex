@@ -1,8 +1,11 @@
 defmodule Bencode.Decoder do
+  @spec decode(String.t) ::
+    Integer | String.t | List | Map | no_return
   def decode(data) do
     {result, ""} = do_decode(data)
     result
   end
+
   defp do_decode(<<"i", data::binary>>),
     do: decode_integer(data)
   defp do_decode(<<"l", data::binary>>),

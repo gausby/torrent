@@ -1,4 +1,9 @@
 defmodule Bencode do
-  defdelegate encode(data), to: Bencode.Encoder
-  defdelegate decode(data), to: Bencode.Decoder
+  @spec encode(any) :: String.t
+  defdelegate encode(data),
+    to: Bencode.Encoder
+
+  @spec decode(String.t) :: Integer | String.t | List | Map | no_return
+  defdelegate decode(data),
+    to: Bencode.Decoder
 end
