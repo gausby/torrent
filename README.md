@@ -1,10 +1,11 @@
-# Torrent
+Torrent
+=======
+A bittorrent client written in Elixir.
 
-**TODO: Add description**
+Installation
+------------
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+If (and when) [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
 
   1. Add torrent to your list of dependencies in `mix.exs`:
 
@@ -17,3 +18,8 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
         def application do
           [applications: [:torrent]]
         end
+
+License
+-------
+
+See the LICENSE file included in the project. If it is not please contact the creator of the project.
