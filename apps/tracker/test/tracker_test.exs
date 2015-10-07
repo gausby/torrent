@@ -1,6 +1,6 @@
-defmodule TorrentTest do
+defmodule TrackerTest do
   use ExUnit.Case
-  doctest Torrent
+  doctest Tracker
 
   test "the truth" do
     assert 1 + 1 == 2
