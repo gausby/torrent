@@ -1,10 +1,10 @@
 # Bencode
 
-**TODO: Add description**
+A bencode encoder/decoder for Elixir. For use for various modules in the Torrent project.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+If (and when) [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
 
   1. Add bencode to your list of dependencies in `mix.exs`:
 
