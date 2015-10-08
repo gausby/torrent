@@ -1,11 +1,14 @@
 defmodule Tracker do
   @behaviour Plug
   import Plug.Conn
+  import Tracker.Utils, only: [to_scrape_path: 1]
 
   def init(opts) do
-    Keyword.merge([path: "/announce"], opts)
-    # todo, /scrape should be realtive to /announce
-    Keyword.merge(opts, [announce: opts[:path], scrape: "/scrape"])
+    # The scrape path will be found relative to the announce path.
+    # This will fail if the annonuce path is invalid
+    {:ok, scrape_path} = to_scrape_path(opts[:path])
+
+    Keyword.merge(opts, [announce: opts[:path], scrape: scrape_path])
   end
 
   def call(%Plug.Conn{method: "GET"} = conn, opts) do
