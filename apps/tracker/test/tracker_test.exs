@@ -3,28 +3,36 @@ defmodule TrackerTest do
   use Plug.Test
   doctest Tracker
 
-  defp call(mod, conn),
-    do: mod.call(conn, [])
+  defmodule TestTracker do
+    use Plug.Router
+    plug Tracker, path: "/announce"
+    plug :match
+    plug :dispatch
+
+    match _ do
+      send_resp conn, 404, "file not found"
+    end
+  end
 
   # dummy data for now!
 
   test "getting announce" do
-    conn = call(Tracker, conn(:get, "announce"))
+    conn = conn(:get, "/announce") |> TestTracker.call([])
     assert conn.resp_body == Bencode.encode("hello, world!")
   end
 
   test "should be able to scrape" do
-    conn = call(Tracker, conn(:get, "scrape"))
+    conn = conn(:get, "/scrape") |> TestTracker.call([])
     assert conn.resp_body == Bencode.encode("all")
   end
 
   test "should be able to specify the info_hash of interest when scraping" do
-    conn = call(Tracker, conn(:get, "scrape?info_hash=aaaaaaaaaaaaaaaaaaaa"))
+    conn = conn(:get, "/scrape?info_hash=aaaaaaaaaaaaaaaaaaaa") |> TestTracker.call([])
     assert conn.resp_body == Bencode.encode(["aaaaaaaaaaaaaaaaaaaa"])
   end
 
   test "should be able to specify multiple info_hashes of interest when scraping" do
-    conn = call(Tracker, conn(:get, "scrape?info_hash=aaaaaaaaaaaaaaaaaaaa&info_hash=bbbbbbbbbbbbbbbbbbbb&info_hash=cccccccccccccccccccc"))
+    conn = conn(:get, "/scrape?info_hash=aaaaaaaaaaaaaaaaaaaa&info_hash=bbbbbbbbbbbbbbbbbbbb&info_hash=cccccccccccccccccccc") |> TestTracker.call([])
     assert conn.resp_body == Bencode.encode(["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"])
   end
 end

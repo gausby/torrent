@@ -1,24 +1,35 @@
 defmodule Tracker do
-  use Application
-  use Plug.Router
+  @behaviour Plug
+  import Plug.Conn
 
-  def start(_, args) do
-    Plug.Adapters.Cowboy.http __MODULE__, [], args
+  def init(opts) do
+    Keyword.merge([path: "/announce"], opts)
+    # todo, /scrape should be realtive to /announce
+    Keyword.merge(opts, [announce: opts[:path], scrape: "/scrape"])
   end
 
-  def stop(_) do
-    Plug.Adapters.Cowboy.shutdown __MODULE__.HTTP
-  end
+  def call(%Plug.Conn{method: "GET"} = conn, opts) do
+    cond do
+      conn.request_path == opts[:announce] ->
+        conn |> halt |> handle_announce
 
-  plug :match
-  plug :dispatch
+      conn.request_path == opts[:scrape] ->
+        conn |> halt |> handle_scrape
+
+      :otherwise ->
+        conn
+    end
+  end
+  # let other request methods pass through...
+  def call(conn, _),
+    do: conn
 
   @data "hello, world!"
-  get "announce" do
-    send_resp conn, 200, Bencode.encode(@data)
+  def handle_announce(conn) do
+    send_resp(conn, 200, Bencode.encode(@data))
   end
 
-  get "scrape" do
+  def handle_scrape(conn) do
     case get_info_hashes(conn) do
       [] ->
         send_resp conn, 200, Bencode.encode("all")
@@ -46,8 +57,4 @@ defmodule Tracker do
 
   defp extract_info_hash(<<"info_hash=", info_hash::binary>>),
     do: info_hash
-
-  match _ do
-    send_resp conn, 404, "File not found"
-  end
 end
