@@ -35,10 +35,15 @@ defmodule Tracker do
   def handle_scrape(conn) do
     case get_info_hashes(conn) do
       [] ->
-        send_resp conn, 200, Bencode.encode("all")
+        send_resp conn, 200, Bencode.encode(%{files: []})
 
       info_hashes ->
-        send_resp conn, 200, Bencode.encode(info_hashes)
+        files = Enum.reduce(info_hashes, %{}, fn(info_hash, acc) ->
+          # there is a name key which is optional
+          status = %{complete: 0, downloaded: 0, incomplete: 0}
+          Map.put_new(acc, info_hash, status)
+        end)
+        send_resp conn, 200, Bencode.encode(%{files: files})
     end
   end
 
