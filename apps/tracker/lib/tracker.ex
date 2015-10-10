@@ -28,11 +28,12 @@ defmodule Tracker do
     do: conn
 
   @data "hello, world!"
-  def handle_announce(conn) do
+  defp handle_announce(%Plug.Conn{} = conn) do
+    conn = conn |> Plug.Conn.fetch_query_params
     send_resp(conn, 200, Bencode.encode(@data))
   end
 
-  def handle_scrape(conn) do
+  defp handle_scrape(%Plug.Conn{} = conn) do
     case get_info_hashes(conn) do
       [] ->
         send_resp conn, 200, Bencode.encode(%{files: []})
