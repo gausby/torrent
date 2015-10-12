@@ -27,10 +27,10 @@ defmodule Tracker do
   def call(conn, _),
     do: conn
 
-  @data "hello, world!"
   defp handle_announce(%Plug.Conn{} = conn) do
     conn = conn |> Plug.Conn.fetch_query_params
-    send_resp(conn, 200, Bencode.encode(@data))
+    response = %{peers: []}
+    send_resp(conn, 200, Bencode.encode(response))
   end
 
   defp handle_scrape(%Plug.Conn{} = conn) do

@@ -2,6 +2,7 @@ defmodule TrackerTest do
   use ExUnit.Case
   use Plug.Test
   doctest Tracker
+  alias TrackerTest.Request
 
   defmodule TestTracker do
     use Plug.Router
@@ -16,9 +17,11 @@ defmodule TrackerTest do
 
   # dummy data for now!
 
-  test "getting announce" do
-    conn = conn(:get, "/announce") |> TestTracker.call([])
-    assert conn.resp_body == Bencode.encode("hello, world!")
+  test "announce should return an empty list when asking for zero peers" do
+    request = %Request{numwant: 0} |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    assert response["peers"] == []
   end
 
   test "should be able to scrape" do
