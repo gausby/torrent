@@ -1,6 +1,6 @@
 # Tracker
 
-**TODO: Add description**
+A BitTorrent Tracker implementation written in Elixir.
 
 ## Installation
 

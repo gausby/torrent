@@ -14,13 +14,15 @@ defmodule Tracker.Mixfile do
 
   # Configuration for the OTP application
   def application do
-    [applications: [:logger, :cowboy, :plug]]
+    [applications: [:logger, :gproc, :cowboy, :plug]]
   end
 
   # Dependencies can be Hex packages:
   defp deps do
     [{:cowboy, "~> 1.0.0"},
      {:plug, "~> 1.0"},
+     {:gproc, "~> 0.5.0"},
+     {:uuid, "~> 1.0.1"},
      {:bencode, in_umbrella: true}]
   end
 end
