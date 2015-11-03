@@ -84,7 +84,6 @@ defmodule Tracker.Peer do
     {:noreply, update_state(state, status), @announce_timeout}
   end
   def handle_cast({:announce, %{event: nil} = status}, state) do
-    tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
     {:noreply, update_state(state, status), @announce_timeout}
   end
   def handle_cast({:announce, %{event: "completed"} = status}, state) do
