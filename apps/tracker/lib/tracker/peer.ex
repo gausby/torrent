@@ -39,8 +39,8 @@ defmodule Tracker.Peer do
     GenServer.cast(pid, {:announce, status})
   end
 
-  def state(pid) do
-    GenServer.call(pid, :state)
+  def complete?(pid) do
+    GenServer.call(pid, :complete?)
   end
 
   # Server callbacks
@@ -108,8 +108,8 @@ defmodule Tracker.Peer do
   end
 
   # call
-  def handle_call(:state, _from, state) do
-    {:reply, state, state}
+  def handle_call(:complete?, _from, state) do
+    {:reply, state.complete, state}
   end
 
   def handle_call(:terminate, _from, state) do

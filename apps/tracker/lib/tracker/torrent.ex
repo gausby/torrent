@@ -53,7 +53,7 @@ defmodule Tracker.Torrent do
     # rebuild state from possibly existing peers
     {complete, incomplete} =
       list_all_peers(state.info_hash)
-      |> Enum.partition(&(Tracker.Peer.state(&1).complete))
+      |> Enum.partition(&(Tracker.Peer.complete?(&1)))
 
     # peers downloading, "leeching"
     :gproc.reg({:c, :l, :incomplete}, length(incomplete))
