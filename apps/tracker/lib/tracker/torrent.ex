@@ -4,7 +4,7 @@ defmodule Tracker.Torrent do
   # Client API
   def create(data) do
     # should be able to handle data from torrent files and urn's
-    case start_link(data) do
+    case Supervisor.start_child(Tracker.Torrent.Supervisor, [data]) do
       {:ok, pid} ->
         pid
 
@@ -50,11 +50,16 @@ defmodule Tracker.Torrent do
   end
 
   def handle_info({:register, state}, nil) do
+    # rebuild state from possibly existing peers
+    {complete, incomplete} =
+      list_all_peers(state.info_hash)
+      |> Enum.partition(&(Tracker.Peer.state(&1).complete))
+
     # peers downloading, "leeching"
-    :gproc.reg({:c, :l, :incomplete}, 0)
+    :gproc.reg({:c, :l, :incomplete}, length(incomplete))
 
     # peers marked as done, "seeders"
-    :gproc.reg({:c, :l, :complete}, 0)
+    :gproc.reg({:c, :l, :complete}, length(complete))
 
     # completed downloads since beginning of time
     :gproc.reg({:c, :l, :downloads}, 0)

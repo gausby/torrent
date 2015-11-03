@@ -11,11 +11,17 @@ defmodule Tracker.TorrentTest do
   end
 
   setup do
+    # stop all tracked torrents
+    match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
+    for torrent <- :gproc.select([{match, [], [:'$1']}]) do
+      Tracker.Torrent.stop(torrent)
+    end
+
+    # kill loose peers, if some test should leave some behind
     match = {{:n, :l, {Tracker.Peer, :'_', :'_'}}, :'$1', :'_'}
     for peer <- :gproc.select([{match, [], [:'$1']}]) do
       Tracker.Peer.stop(peer)
     end
-
     :ok
   end
 
@@ -62,9 +68,6 @@ defmodule Tracker.TorrentTest do
     assert Process.alive?(torrent_pid) == false
     assert length(Tracker.Torrent.list_all_peers(@info_hash)) == 0
   end
-
-  # Randomly killing a new torrent =====================================
-  # test "when killed it should respawn and collect data from the peers"
 
   # Statistics =========================================================
 
@@ -243,6 +246,49 @@ defmodule Tracker.TorrentTest do
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 0
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
+  end
+
+  # Randomly killing a new torrent =====================================
+  test "when killed it should respawn and collect data from the peers" do
+    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    key = {:n, :l, {Tracker.Torrent, @info_hash}}
+    assert torrent_pid == :gproc.where(key)
+
+    # spawn some peers
+    test_data =
+      %{info_hash: @info_hash,
+        ip: {127, 0, 0, 1}, port: 31337,
+        peer_id: "foo",
+        event: "started",
+        downloaded: 0,
+        uploaded: 0,
+        left: 700}
+
+    peers = for peer <- ["foo", "bar"] do
+      {:ok, pid, trackerid} =
+        Tracker.Torrent.add_peer(torrent_pid, Map.put(test_data, :peer_id, peer))
+      {pid, trackerid}
+    end
+    :timer.sleep 10
+    # announce the first peer as complete
+    [{first_pid, first_trackerid}|_] = peers
+    update =
+      %{event: "completed",
+        trackerid: first_trackerid,
+        downloaded: 700,
+        uploaded: 600,
+        left: 0}
+    Tracker.Peer.announce(first_pid, Map.merge(test_data, update))
+    :timer.sleep 10
+
+    assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 1
+    assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 1
+
+    Process.exit(torrent_pid, :kill)
+    {respawned_pid, _} = :gproc.await key
+    :timer.sleep 10
+    assert :gproc.get_value({:c, :l, :incomplete}, respawned_pid) == 1
+    assert :gproc.get_value({:c, :l, :complete}, respawned_pid) == 1
   end
 
   # peer dissapearing/timing out ---------------------------------------

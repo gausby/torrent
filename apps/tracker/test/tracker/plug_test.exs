@@ -21,7 +21,13 @@ defmodule Tracker.PlugTest do
   end
 
   setup do
-    # remove all peers before each test
+    # stop all tracked torrents
+    match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
+    for torrent <- :gproc.select([{match, [], [:'$1']}]) do
+      Tracker.Torrent.stop(torrent)
+    end
+
+    # kill loose peers, if some test should leave some behind
     match = {{:n, :l, {Tracker.Peer, :'_', :'_'}}, :'$1', :'_'}
     for peer <- :gproc.select([{match, [], [:'$1']}]) do
       Tracker.Peer.stop(peer)

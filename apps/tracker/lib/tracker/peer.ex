@@ -39,6 +39,10 @@ defmodule Tracker.Peer do
     GenServer.cast(pid, {:announce, status})
   end
 
+  def state(pid) do
+    GenServer.call(pid, :state)
+  end
+
   # Server callbacks
   def init(%{info_hash: info_hash, trackerid: trackerid} = opts) do
     state = %Tracker.Peer.State{
@@ -105,6 +109,10 @@ defmodule Tracker.Peer do
   end
 
   # call
+  def handle_call(:state, _from, state) do
+    {:reply, state, state}
+  end
+
   def handle_call(:terminate, _from, state) do
     :gproc.goodbye()
     {:stop, :normal, state, state}
