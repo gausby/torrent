@@ -138,17 +138,26 @@ defmodule Tracker.Plug do
         result = for [{:n, :l, {_, info_hash}}, pid, _] <- :gproc.select([{match, [], [:'$$']}]), into: %{} do
           Tracker.Torrent.get_statistics(pid, info_hash)
         end
-
         send_resp conn, 200, Bencode.encode(%{files: result})
 
       info_hashes ->
-        files = for info_hash <- info_hashes, into: %{} do
-          :gproc.where({:n, :l, {Tracker.Torrent, info_hash}})
-          |> Tracker.Torrent.get_statistics(info_hash)
-        end
+        files =
+          info_hashes
+          |> Stream.map(&find_pid_from_info_hash/1)
+          |> Stream.filter(&filter_out_undefined/1)
+          |> Stream.map(&get_statistics_for_tracker/1)
+          |> Enum.into(%{})
+
         send_resp conn, 200, Bencode.encode(%{files: files})
     end
   end
+  # handle scrape helpers
+  defp find_pid_from_info_hash(info_hash),
+    do: {:gproc.where({:n, :l, {Tracker.Torrent, info_hash}}), info_hash}
+  defp filter_out_undefined({pid, _}),
+    do: pid != :undefined
+  defp get_statistics_for_tracker({pid, info_hash}),
+    do: Tracker.Torrent.get_statistics(pid, info_hash)
 
   # Creating a custom query string parser specificly for info_hash-values,
   # as the default query parser will return a map, resulting in only the

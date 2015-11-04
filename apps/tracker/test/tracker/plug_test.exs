@@ -166,6 +166,16 @@ defmodule Tracker.PlugTest do
     assert conn.resp_body == Bencode.encode(%{files: result})
   end
 
+  test "should return an empty list when scraping a tracker that track no torrents" do
+    conn = conn(:get, "/scrape") |> TestTracker.call([])
+    assert conn.resp_body == Bencode.encode(%{files: %{}})
+  end
+
+  test "should return an empty list when scraping and specifying a torrent that does not exist" do
+    conn = conn(:get, "/scrape?info_hash=aaaaaaaaaaaaaaaaaaaa") |> TestTracker.call([])
+    assert conn.resp_body == Bencode.encode(%{files: %{}})
+  end
+
   test "should be able to specify the info_hash of interest when scraping" do
     info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
     result = for info_hash <- info_hashes, into: %{} do
