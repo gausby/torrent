@@ -135,10 +135,13 @@ defmodule Tracker.Plug do
     case get_info_hashes(conn) do
       [] ->
         match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
-        result = for [{:n, :l, {_, info_hash}}, pid, _] <- :gproc.select([{match, [], [:'$$']}]), into: %{} do
-          Tracker.Torrent.get_statistics(pid, info_hash)
-        end
-        send_resp conn, 200, Bencode.encode(%{files: result})
+        files =
+          :gproc.select([{match, [], [:'$$']}])
+          |> Stream.map(&extract_pid_and_info_hash/1)
+          |> Stream.map(&get_statistics_for_tracker/1)
+          |> Enum.into(%{})
+
+        send_resp conn, 200, Bencode.encode(%{files: files})
 
       info_hashes ->
         files =
@@ -152,6 +155,8 @@ defmodule Tracker.Plug do
     end
   end
   # handle scrape helpers
+  defp extract_pid_and_info_hash([{:n, :l, {_, info_hash}}, pid, _]),
+    do: {pid, info_hash}
   defp find_pid_from_info_hash(info_hash),
     do: {:gproc.where({:n, :l, {Tracker.Torrent, info_hash}}), info_hash}
   defp filter_out_undefined({pid, _}),
