@@ -177,9 +177,9 @@ defmodule Tracker.Plug do
     |> Enum.filter_map(&info_hash?/1, &extract_info_hash/1)
   end
 
-  defp info_hash?(topic),
-    do: String.starts_with? topic, "info_hash="
+  defp info_hash?(<<"info_hash=", _::binary-size(20)>>), do: true
+  defp info_hash?(_), do: false
 
-  defp extract_info_hash(<<"info_hash=", info_hash::binary>>),
+  defp extract_info_hash(<<"info_hash=", info_hash::binary-size(20)>>),
     do: info_hash
 end
