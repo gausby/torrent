@@ -27,6 +27,23 @@ defmodule Tracker.Plug do
   def call(conn, _),
     do: conn
 
+  #=ERROR RESPONSES=====================================================
+  @error_invalid_request_data Bencode.encode(%{
+    failure_reason: "Please provide valid announce data"
+  })
+  @error_info_hash_not_tracked_by_server Bencode.encode(%{
+    failure_reason: "The given info_hash is not tracked by this server"
+  })
+  @error_failure_registering_peer Bencode.encode(%{
+    failure_reason: "Could not create peer"
+  })
+  @error_trackerid_must_not_be_set_on_first_announce Bencode.encode(%{
+    failure_reason: "Tracker id must not be set when announcing with started event"
+  })
+  @error_unknown_peer Bencode.encode(%{
+    failure_reason: "The given peer is unknown to this server"
+  })
+
   #=ANNOUNCE ===========================================================
   defp guard_announce(%Plug.Conn{params: params} = conn) do
     case params do
@@ -44,16 +61,14 @@ defmodule Tracker.Plug do
         handle_announce(conn, announce)
 
       _ ->
-        response = %{failure_reason: "Please provide a bunch of data"}
-        send_resp(conn, 400, Bencode.encode(response))
+        send_resp(conn, 400, @error_invalid_request_data)
     end
   end
 
   defp handle_announce(conn, %{event: "started", trackerid: nil} = announce) do
     case :gproc.where({:n, :l, {Tracker.Torrent, announce.info_hash}}) do
       :undefined ->
-        message = Bencode.encode(%{failure_reason: "The given info_hash is not tracked by this server"})
-        send_resp(conn, 300, message)
+        send_resp(conn, 300, @error_info_hash_not_tracked_by_server)
 
       pid ->
         case Tracker.Torrent.add_peer(pid, announce) do
@@ -63,20 +78,18 @@ defmodule Tracker.Plug do
             send_resp(conn, 200, Bencode.encode(response))
 
           _ ->
-            send_resp(conn, 300, Bencode.encode(%{failure_reason: "Something bad happened"}))
+            send_resp(conn, 300, @error_failure_registering_peer)
         end
     end
   end
   defp handle_announce(conn, %{event: "started", trackerid: trackerid}) when trackerid != nil do
-    message = Bencode.encode(%{failure_reason: "Tracker id must not be set when announcing with started event"})
-    send_resp(conn, 300, message)
+    send_resp(conn, 300, @error_trackerid_must_not_be_set_on_first_announce)
   end
 
   defp handle_announce(conn, %{event: "stopped"} = announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
       :undefined ->
-        message = Bencode.encode(%{failure_reason: "Unknown peer"})
-        send_resp(conn, 300, message)
+        send_resp(conn, 300, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
@@ -89,8 +102,7 @@ defmodule Tracker.Plug do
   defp handle_announce(conn, %{event: "completed"} = announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
       :undefined ->
-        message = Bencode.encode(%{failure_reason: "Unknown peer"})
-        send_resp(conn, 300, message)
+        send_resp(conn, 300, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
@@ -103,8 +115,7 @@ defmodule Tracker.Plug do
   defp handle_announce(conn, announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
       :undefined ->
-        message = Bencode.encode(%{failure_reason: "Unknown peer"})
-        send_resp(conn, 300, message)
+        send_resp(conn, 300, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
