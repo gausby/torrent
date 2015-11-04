@@ -65,6 +65,7 @@ defmodule Tracker.TorrentTest do
     end
     assert length(Tracker.Torrent.list_all_peers(@info_hash)) == 3
     Tracker.Torrent.stop(torrent_pid)
+    :timer.sleep 10
     assert Process.alive?(torrent_pid) == false
     assert length(Tracker.Torrent.list_all_peers(@info_hash)) == 0
   end
