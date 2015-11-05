@@ -73,7 +73,7 @@ defmodule Tracker.Torrent do
         Tracker.Peer.announce(pid, data)
         {:reply, result, state}
       _ ->
-        {:reply, {:error, "faild initializing peer"}, state}
+        {:reply, {:error, "failed initializing peer"}, state}
     end
   end
 
