@@ -16,6 +16,9 @@ defmodule Tracker.PlugTest do
   end
 
   setup_all do
+    :ok = Logger.remove_backend(:console)
+    on_exit(fn -> Logger.add_backend(:console, flush: true) end)
+
     Tracker.start(:normal, [])
     :ok
   end

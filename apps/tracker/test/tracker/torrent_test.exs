@@ -6,6 +6,9 @@ defmodule Tracker.TorrentTest do
   @dummy_meta_info %{info_hash: "xxxxxxxxxxxxxxxxxxxx", size: 100, name: "test"}
 
   setup_all do
+    :ok = Logger.remove_backend(:console)
+    on_exit(fn -> Logger.add_backend(:console, flush: true) end)
+
     Tracker.start(:normal, [])
     :ok
   end

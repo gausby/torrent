@@ -1,5 +1,6 @@
 defmodule Tracker.Peer do
   use GenServer
+  require Logger
   import UUID, only: [uuid4: 0]
 
   @announce_timeout :infinity
@@ -45,6 +46,7 @@ defmodule Tracker.Peer do
 
   # Server callbacks
   def init(%{info_hash: info_hash, trackerid: trackerid} = opts) do
+    Logger.info "#{trackerid} is registering with #{info_hash}"
     state = %Tracker.Peer.State{
       info_hash: info_hash,
       trackerid: trackerid,
@@ -73,20 +75,24 @@ defmodule Tracker.Peer do
 
   # info
   def handle_info(:timeout, state) do
+    Logger.info "#{state.trackerid} (tracking #{state.info_hash}) timed out"
     # kill if the peer has not announced within a given time
     {:noreply, state}
   end
 
   def handle_cast({:announce, %{event: "started"} = status}, state) do
+    Logger.info "#{state.trackerid} is now tracking #{state.info_hash}"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
     :gproc.update_counter({:c, :l, :incomplete}, tracker_pid, 1)
 
     {:noreply, update_state(state, status), @announce_timeout}
   end
   def handle_cast({:announce, %{event: nil} = status}, state) do
+    Logger.info "#{state.trackerid} announced to #{state.info_hash}"
     {:noreply, update_state(state, status), @announce_timeout}
   end
   def handle_cast({:announce, %{event: "completed"} = status}, state) do
+    Logger.info "#{state.trackerid} marked #{state.info_hash} as completed"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
     :gproc.update_counter({:c, :l, :incomplete}, tracker_pid, -1)
     :gproc.update_counter({:c, :l, :complete}, tracker_pid, 1)
@@ -95,12 +101,14 @@ defmodule Tracker.Peer do
     {:noreply, update_state(state, status), @announce_timeout}
   end
   def handle_cast({:announce, %{event: "stopped"} = status}, %{complete: true} = state) do
+    Logger.info "#{state.trackerid} stopped tracking #{state.info_hash}"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
     :gproc.update_counter({:c, :l, :complete}, tracker_pid, -1)
     final_state = update_state(state, status)
     {:stop, :normal, final_state}
   end
   def handle_cast({:announce, %{event: "stopped"} = status}, state) do
+    Logger.info "#{state.trackerid} stopped tracking #{state.info_hash}"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
     :gproc.update_counter({:c, :l, :incomplete}, tracker_pid, -1)
     final_state = update_state(state, status)
@@ -113,6 +121,7 @@ defmodule Tracker.Peer do
   end
 
   def handle_call(:terminate, _from, state) do
+    Logger.info "#{state.trackerid} is terminating"
     :gproc.goodbye()
     {:stop, :normal, state, state}
   end
