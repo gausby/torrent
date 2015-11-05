@@ -156,6 +156,28 @@ defmodule Tracker.PlugTest do
     refute response["failure_reason"]
   end
 
+  test "announce should return an error if event is set but no trackerid is given" do
+    Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
+    # start peer
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        info_hash: "aaaaaaaaaaaaaaaaaaaa"}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    refute response["failure_reason"]
+    assert response["trackerid"]
+
+    # make a new request, but do not specify a trackerid
+    request = %{request | event: "completed", downloaded: 700}
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    assert response["failure_reason"]
+  end
+
   # scrape =============================================================
   test "should be able to scrape" do
     info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]

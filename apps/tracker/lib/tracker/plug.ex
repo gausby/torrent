@@ -43,6 +43,9 @@ defmodule Tracker.Plug do
   @error_unknown_peer Bencode.encode(%{
     failure_reason: "The given peer is unknown to this server"
   })
+  @error_no_trackerid_specified Bencode.encode(%{
+    failure_reason: "A trackerid should always be specified unless event is set to started"
+  })
 
   #=ANNOUNCE ===========================================================
   defp guard_announce(%Plug.Conn{params: params} = conn) do
@@ -86,43 +89,47 @@ defmodule Tracker.Plug do
     send_resp(conn, 400, @error_trackerid_must_not_be_set_on_first_announce)
   end
 
-  defp handle_announce(conn, %{event: "stopped"} = announce) do
-    case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
+  defp handle_announce(conn, %{event: "stopped", trackerid: trackerid} = announce) when trackerid != nil do
+    case :gproc.where({:n, :l, {Tracker.Peer, trackerid, announce.info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
         # todo send zero peers back
-        response = announce_response(announce.trackerid)
+        response = announce_response(trackerid)
         send_resp(conn, 200, Bencode.encode(response))
     end
   end
 
-  defp handle_announce(conn, %{event: "completed"} = announce) do
-    case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
+  defp handle_announce(conn, %{event: "completed", trackerid: trackerid} = announce) when trackerid != nil do
+    case :gproc.where({:n, :l, {Tracker.Peer, trackerid, announce.info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
         # todo send a list of 35-50 (or numwant) peers (without seeders!) to the peer
-        response = announce_response(announce.trackerid)
+        response = announce_response(trackerid)
         send_resp(conn, 200, Bencode.encode(response))
     end
   end
 
-  defp handle_announce(conn, announce) do
-    case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
+  defp handle_announce(conn, %{info_hash: info_hash, trackerid: trackerid} = announce) when trackerid != nil do
+    case :gproc.where({:n, :l, {Tracker.Peer, trackerid, info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
         # todo send a list of peers back
-        response = announce_response(announce.trackerid)
+        response = announce_response(trackerid)
         send_resp(conn, 200, Bencode.encode(response))
     end
+  end
+
+  defp handle_announce(conn, _) do
+    send_resp(conn, 400, @error_no_trackerid_specified)
   end
 
   defp announce_response(trackerid) do
