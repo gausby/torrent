@@ -68,28 +68,28 @@ defmodule Tracker.Plug do
   defp handle_announce(conn, %{event: "started", trackerid: nil} = announce) do
     case :gproc.where({:n, :l, {Tracker.Torrent, announce.info_hash}}) do
       :undefined ->
-        send_resp(conn, 300, @error_info_hash_not_tracked_by_server)
+        send_resp(conn, 404, @error_info_hash_not_tracked_by_server)
 
       pid ->
         case Tracker.Torrent.add_peer(pid, announce) do
           {:ok, _pid, trackerid} ->
             # todo, send numwant peers back
             response = announce_response(trackerid)
-            send_resp(conn, 200, Bencode.encode(response))
+            send_resp(conn, 201, Bencode.encode(response))
 
           _ ->
-            send_resp(conn, 300, @error_failure_registering_peer)
+            send_resp(conn, 500, @error_failure_registering_peer)
         end
     end
   end
   defp handle_announce(conn, %{event: "started", trackerid: trackerid}) when trackerid != nil do
-    send_resp(conn, 300, @error_trackerid_must_not_be_set_on_first_announce)
+    send_resp(conn, 400, @error_trackerid_must_not_be_set_on_first_announce)
   end
 
   defp handle_announce(conn, %{event: "stopped"} = announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
       :undefined ->
-        send_resp(conn, 300, @error_unknown_peer)
+        send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
@@ -102,7 +102,7 @@ defmodule Tracker.Plug do
   defp handle_announce(conn, %{event: "completed"} = announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
       :undefined ->
-        send_resp(conn, 300, @error_unknown_peer)
+        send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
@@ -115,7 +115,7 @@ defmodule Tracker.Plug do
   defp handle_announce(conn, announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, announce.trackerid, announce.info_hash}}) do
       :undefined ->
-        send_resp(conn, 300, @error_unknown_peer)
+        send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
         Tracker.Peer.announce(pid, announce)
