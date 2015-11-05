@@ -68,7 +68,7 @@ defmodule Tracker.Peer do
 
     # Optionally, if the peer specifies an identifier key, this can be
     # used to change the ip and port information later.
-    if state.key, do: :gproc.reg(:p, :l, state.key)
+    if state.key, do: :gproc.reg({:p, :l, state.key})
 
     {:ok, state}
   end
