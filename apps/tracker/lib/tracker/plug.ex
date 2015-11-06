@@ -61,75 +61,72 @@ defmodule Tracker.Plug do
           uploaded: uploaded, downloaded: downloaded, left: left,
           trackerid: params["trackerid"] || nil
         }
-        handle_announce(conn, announce)
+        get_pid(conn, announce)
 
       _ ->
         send_resp(conn, 400, @error_invalid_request_data)
     end
   end
 
-  defp handle_announce(conn, %{event: "started", trackerid: nil} = announce) do
-    case :gproc.where({:n, :l, {Tracker.Torrent, announce.info_hash}}) do
+  # find the process needed to complete the request
+  defp get_pid(conn, %{event: "started", info_hash: info_hash} = announce) do
+    case :gproc.where({:n, :l, {Tracker.Torrent, info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_info_hash_not_tracked_by_server)
 
       pid ->
-        case Tracker.Torrent.add_peer(pid, announce) do
-          {:ok, _pid, trackerid} ->
-            # todo, send numwant peers back
-            response = announce_response(trackerid)
-            send_resp(conn, 201, Bencode.encode(response))
-
-          _ ->
-            send_resp(conn, 500, @error_failure_registering_peer)
-        end
+        handle_announce(conn, pid, announce)
     end
   end
-  defp handle_announce(conn, %{event: "started", trackerid: trackerid}) when trackerid != nil do
-    send_resp(conn, 400, @error_trackerid_must_not_be_set_on_first_announce)
-  end
-
-  defp handle_announce(conn, %{event: "stopped", trackerid: trackerid} = announce) when trackerid != nil do
-    case :gproc.where({:n, :l, {Tracker.Peer, trackerid, announce.info_hash}}) do
-      :undefined ->
-        send_resp(conn, 404, @error_unknown_peer)
-
-      pid ->
-        Tracker.Peer.announce(pid, announce)
-        # todo send zero peers back
-        response = announce_response(trackerid)
-        send_resp(conn, 200, Bencode.encode(response))
-    end
-  end
-
-  defp handle_announce(conn, %{event: "completed", trackerid: trackerid} = announce) when trackerid != nil do
-    case :gproc.where({:n, :l, {Tracker.Peer, trackerid, announce.info_hash}}) do
-      :undefined ->
-        send_resp(conn, 404, @error_unknown_peer)
-
-      pid ->
-        Tracker.Peer.announce(pid, announce)
-        # todo send a list of 35-50 (or numwant) peers (without seeders!) to the peer
-        response = announce_response(trackerid)
-        send_resp(conn, 200, Bencode.encode(response))
-    end
-  end
-
-  defp handle_announce(conn, %{info_hash: info_hash, trackerid: trackerid} = announce) when trackerid != nil do
+  defp get_pid(conn, %{trackerid: trackerid, info_hash: info_hash} = announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, trackerid, info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
 
       pid ->
-        Tracker.Peer.announce(pid, announce)
-        # todo send a list of peers back
-        response = announce_response(trackerid)
-        send_resp(conn, 200, Bencode.encode(response))
+        handle_announce(conn, pid, announce)
     end
   end
 
-  defp handle_announce(conn, _) do
+  defp handle_announce(conn, pid, %{event: "started", trackerid: nil} = announce) do
+    case Tracker.Torrent.add_peer(pid, announce) do
+      {:ok, _pid, trackerid} ->
+        # todo, send numwant peers back
+        response = announce_response(trackerid)
+        send_resp(conn, 201, Bencode.encode(response))
+
+      _ ->
+        send_resp(conn, 500, @error_failure_registering_peer)
+    end
+  end
+  defp handle_announce(conn, _pid, %{event: "started"}) do
+    send_resp(conn, 400, @error_trackerid_must_not_be_set_on_first_announce)
+  end
+
+  # from now on `trackerid` must be present, otherwise it is an user an error
+  defp handle_announce(conn, _pid, %{trackerid: nil}) do
     send_resp(conn, 400, @error_no_trackerid_specified)
+  end
+
+  defp handle_announce(conn, pid, %{event: "stopped"} = announce) do
+    Tracker.Peer.announce(pid, announce)
+    # todo send zero peers back
+    response = announce_response(announce.trackerid)
+    send_resp(conn, 200, Bencode.encode(response))
+  end
+
+  defp handle_announce(conn, pid, %{event: "completed"} = announce) do
+    Tracker.Peer.announce(pid, announce)
+    # todo send a list of 35-50 (or numwant) peers (without seeders!) to the peer
+    response = announce_response(announce.trackerid)
+    send_resp(conn, 200, Bencode.encode(response))
+  end
+
+  defp handle_announce(conn, pid, announce) do
+    Tracker.Peer.announce(pid, announce)
+    # todo send a list of peers back
+    response = announce_response(announce.trackerid)
+    send_resp(conn, 200, Bencode.encode(response))
   end
 
   defp announce_response(trackerid) do
