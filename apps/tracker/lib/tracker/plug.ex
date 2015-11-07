@@ -103,7 +103,7 @@ defmodule Tracker.Plug do
     send_resp(conn, 400, @error_trackerid_must_not_be_set_on_first_announce)
   end
 
-  # from now on `trackerid` must be present, otherwise it is an user an error
+  # from now on `trackerid` must be present, otherwise regard it as an error
   defp handle_announce(conn, _pid, %{trackerid: nil}) do
     send_resp(conn, 400, @error_no_trackerid_specified)
   end
