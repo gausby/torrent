@@ -28,6 +28,29 @@ defmodule Tracker.PeerTest do
     :ok
   end
 
+  test "should return an empty list if no other peers are registered" do
+    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    key = {:n, :l, {Tracker.Torrent, @info_hash}}
+    assert torrent_pid == :gproc.where(key)
+
+    # spawn a peer
+    test_data =
+      %{info_hash: @info_hash,
+        ip: {127, 0, 0, 1}, port: 31337,
+        peer_id: "foo",
+        event: "started",
+        downloaded: 0,
+        uploaded: 0,
+        left: 700}
+
+    {:ok, pid, _trackerid} =
+      Tracker.Torrent.add_peer(torrent_pid, test_data)
+
+    peers = Bencode.decode(Tracker.Peer.get_peers(pid))
+    # the original test_data should not be in the results
+    refute Enum.any?(peers, fn peer -> peer["port"] == test_data[:port] end)
+  end
+
   test "should get a list of peers on request and exclude the calling peer from the results" do
     torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
     key = {:n, :l, {Tracker.Torrent, @info_hash}}

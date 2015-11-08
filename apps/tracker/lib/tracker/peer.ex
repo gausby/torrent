@@ -134,10 +134,14 @@ defmodule Tracker.Peer do
     match = {{:p, :l, {:'$0', state.info_hash}}, :'_', :'$1'}
     guard = [{:'=/=', :'$0', state.trackerid}] # filter out the calling peer
     format = [:'$1']
-    peers = case :gproc.select({:l, :p}, [{match, guard, format}], opts[:numwant]) do
-      {pids, _} ->
-        Enum.map(pids, &(elem(&1, 0)))
-    end
+    peers =
+      case :gproc.select({:l, :p}, [{match, guard, format}], opts[:numwant]) do
+        {pids, _} ->
+          Enum.map(pids, &(elem(&1, 0)))
+
+        :"$end_of_table" ->
+          ""
+      end
 
     {:reply, "l#{peers}e", state}
   end
