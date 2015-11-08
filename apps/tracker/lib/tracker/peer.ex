@@ -44,6 +44,10 @@ defmodule Tracker.Peer do
     GenServer.call(pid, :complete?)
   end
 
+  def get_peers(pid, opts \\ [numwant: 35, compact: false]) do
+    GenServer.call(pid, {:get_peers, opts})
+  end
+
   # Server callbacks
   def init(%{info_hash: info_hash, trackerid: trackerid} = opts) do
     Logger.info "#{trackerid} is registering with #{info_hash}"
@@ -65,6 +69,15 @@ defmodule Tracker.Peer do
     # ip6_address() = {0..65535, 0..65535, 0..65535, 0..65535,
     #                  0..65535, 0..65535, 0..65535, 0..65535}
     # port() = 0..65535
+    formatted_ip =
+      case state.ip do
+        {a, b, c, d} ->
+          Bencode.encode %{ip: "#{a}.#{b}.#{c}.#{d}", port: state.port}
+        ip when is_binary(ip) ->
+          Bencode.encode %{ip: ip, port: state.port}
+      end
+
+    :gproc.reg({:p, :l, {trackerid, info_hash}}, {formatted_ip})
 
     # Optionally, if the peer specifies an identifier key, this can be
     # used to change the ip and port information later.
@@ -80,6 +93,7 @@ defmodule Tracker.Peer do
     {:noreply, state}
   end
 
+  # cast
   def handle_cast({:announce, %{event: "started"} = status}, state) do
     Logger.info "#{state.trackerid} is now tracking #{state.info_hash}"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
@@ -116,6 +130,18 @@ defmodule Tracker.Peer do
   end
 
   # call
+  def handle_call({:get_peers, opts}, _from, state) do
+    match = {{:p, :l, {:'$0', state.info_hash}}, :'_', :'$1'}
+    guard = [{:'=/=', :'$0', state.trackerid}] # filter out the calling peer
+    format = [:'$1']
+    peers = case :gproc.select({:l, :p}, [{match, guard, format}], opts[:numwant]) do
+      {pids, _} ->
+        Enum.map(pids, &(elem(&1, 0)))
+    end
+
+    {:reply, "l#{peers}e", state}
+  end
+
   def handle_call(:complete?, _from, state) do
     {:reply, state.complete, state}
   end
