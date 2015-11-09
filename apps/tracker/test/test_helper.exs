@@ -31,8 +31,9 @@ defmodule TrackerTest.Helpers do
   @dummy_meta_info %{info_hash: "xxxxxxxxxxxxxxxxxxxx", size: 100, name: "test"}
 
   def create_torrent(data \\ %{}) do
-    Tracker.Torrent.create(Map.merge(@dummy_meta_info, data))
-    {tracker_pid, _} = :gproc.await({:n, :l, {Tracker.Torrent, @info_hash}})
+    torrent = Map.merge(@dummy_meta_info, data)
+    Tracker.Torrent.create(torrent)
+    {tracker_pid, _} = :gproc.await({:n, :l, {Tracker.Torrent, torrent[:info_hash]}}, 2000)
 
     tracker_pid
   end
