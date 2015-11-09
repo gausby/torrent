@@ -1,9 +1,7 @@
 defmodule Tracker.TorrentTest do
   use ExUnit.Case
+  import TrackerTest.Helpers
   doctest Tracker.Torrent
-
-  @info_hash "xxxxxxxxxxxxxxxxxxxx"
-  @dummy_meta_info %{info_hash: "xxxxxxxxxxxxxxxxxxxx", size: 100, name: "test"}
 
   setup_all do
     :ok = Logger.remove_backend(:console)
@@ -30,47 +28,38 @@ defmodule Tracker.TorrentTest do
 
   # Adding a new torrent ===============================================
   test "should register a new torrent" do
-    pid = Tracker.Torrent.create(@dummy_meta_info)
-    assert ^pid = :gproc.where({:n, :l, {Tracker.Torrent, @info_hash}})
+    info_hash = "yyyyyyyyyyyyyyyyyyyy"
+    pid = create_torrent(%{info_hash: info_hash})
+    assert ^pid = :gproc.where({:n, :l, {Tracker.Torrent, info_hash}})
   end
 
   test "should return the same pid when registering the same info_hash twice (or more)" do
-    pid1 = Tracker.Torrent.create(@dummy_meta_info)
-    pid2 = Tracker.Torrent.create(@dummy_meta_info)
+    data = %{info_hash: "xxxxxxxxxxxxxxxxxxxx", size: 1, name: "foo"}
+    pid1 = Tracker.Torrent.create(data)
+    pid2 = Tracker.Torrent.create(data)
     assert pid1 == pid2
   end
 
   test "should be able to track peers" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
-    {:ok, pid, _} =
-      Tracker.Torrent.add_peer(torrent_pid, %{event: "started",
-                                              info_hash: @info_hash,
-                                              ip: {127, 0, 0, 1}, port: 31337,
-                                              peer_id: "hello",
-                                              uploaded: 0,
-                                              downloaded: 0,
-                                              left: 0})
-    assert [^pid] = Tracker.Torrent.list_all_peers(@info_hash)
+    info_hash = "xxxxxxxxxxxxxxxxxxxx"
+    torrent_pid = create_torrent(%{info_hash: info_hash})
+    {:ok, pid, _} = create_peer(torrent_pid)
+    assert [^pid] = Tracker.Torrent.list_all_peers(info_hash)
   end
 
   # Removing a torrent =================================================
   test "should remove all peers when shutting down on purpose" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    info_hash = "xxxxxxxxxxxxxxxxxxxx"
+    torrent_pid = create_torrent(%{info_hash: info_hash})
 
-    for peer <- ["foo", "bar", "baz"] do
-      Tracker.Torrent.add_peer(torrent_pid, %{event: "started",
-                                              info_hash: @info_hash,
-                                              ip: {127, 0, 0, 1}, port: 31337,
-                                              peer_id: peer,
-                                              uploaded: 0,
-                                              downloaded: 0,
-                                              left: 0})
-    end
-    assert length(Tracker.Torrent.list_all_peers(@info_hash)) == 3
+    for peer_id <- ["foo", "bar", "baz"],
+      do: create_peer(torrent_pid, %{peer_id: peer_id})
+
+    assert length(Tracker.Torrent.list_all_peers(info_hash)) == 3
     Tracker.Torrent.stop(torrent_pid)
     :timer.sleep 10
     assert Process.alive?(torrent_pid) == false
-    assert length(Tracker.Torrent.list_all_peers(@info_hash)) == 0
+    assert length(Tracker.Torrent.list_all_peers(info_hash)) == 0
   end
 
   # Statistics =========================================================
@@ -81,88 +70,52 @@ defmodule Tracker.TorrentTest do
 
   # peer joining -------------------------------------------------------
   test "should update incomplete statistics when a new peer joins" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    torrent_pid = create_torrent()
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
 
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-    Tracker.Torrent.add_peer(torrent_pid, test_data)
+    create_peer(torrent_pid)
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 1
   end
 
   test "should not increment 'downloads' when a peer joins and announce 0 left" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    torrent_pid = create_torrent()
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :downloads}, torrent_pid) == 0
 
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-    Tracker.Torrent.add_peer(torrent_pid, test_data)
+    create_peer(torrent_pid, %{left: 0})
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :downloads}, torrent_pid) == 0
   end
 
   # peer completing ----------------------------------------------------
   test "should increment its complete statistics and decrement its incomplete statistics when a peer complete" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    torrent_pid = create_torrent()
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 0
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
 
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-    {:ok, pid, trackerid} = Tracker.Torrent.add_peer(torrent_pid, test_data)
+    {:ok, pid, _trackerid} = create_peer(torrent_pid)
 
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 1
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 0
 
-    update =
-      %{event: "completed",
-        trackerid: trackerid,
-        downloaded: 700,
-        uploaded: 600,
-        left: 0}
-    Tracker.Peer.announce(pid, Map.merge(test_data, update))
+    update = %{event: "completed", left: 0}
+    Tracker.Peer.announce(pid, generate_announce_data(update))
+
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 1
   end
 
   test "should increment its downloads statistics when a peer complete" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    torrent_pid = create_torrent()
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :downloads}, torrent_pid) == 0
 
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-    {:ok, pid, trackerid} = Tracker.Torrent.add_peer(torrent_pid, test_data)
+    {:ok, pid, trackerid} = create_peer(torrent_pid)
 
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :downloads}, torrent_pid) == 0
@@ -170,59 +123,39 @@ defmodule Tracker.TorrentTest do
     update =
       %{event: "completed",
         trackerid: trackerid,
-        downloaded: 700,
-        uploaded: 600,
         left: 0}
-    Tracker.Peer.announce(pid, Map.merge(test_data, update))
+    Tracker.Peer.announce(pid, generate_announce_data(update))
+
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :downloads}, torrent_pid) == 1
   end
 
   # peer stopping ------------------------------------------------------
   test "should decrement its incomplete statistics when an incomplete peer stops" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    torrent_pid = create_torrent()
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
 
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo-bar-baz",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-    {:ok, pid, trackerid} = Tracker.Torrent.add_peer(torrent_pid, test_data)
+    {:ok, pid, trackerid} = create_peer(torrent_pid)
 
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 1
 
     update =
-      %{event: "stopped",
-        trackerid: trackerid,
-        downloaded: 700,
-        uploaded: 600,
-        left: 0}
-    Tracker.Peer.announce(pid, Map.merge(test_data, update))
+      %{event: "stopped", trackerid: trackerid}
+    Tracker.Peer.announce(pid, generate_announce_data(update))
+
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
   end
 
   test "should decrement its complete statistics when a complete peer stops" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
+    torrent_pid = create_torrent()
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 0
 
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-    {:ok, pid, trackerid} = Tracker.Torrent.add_peer(torrent_pid, test_data)
+    {:ok, pid, trackerid} = create_peer(torrent_pid)
 
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 1
@@ -231,21 +164,17 @@ defmodule Tracker.TorrentTest do
     update =
       %{event: "completed",
         trackerid: trackerid,
-        downloaded: 700,
-        uploaded: 600,
         left: 0}
-    Tracker.Peer.announce(pid, Map.merge(test_data, update))
+    Tracker.Peer.announce(pid, generate_announce_data(update))
+
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 0
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 1
 
     update =
       %{event: "stopped",
-        trackerid: trackerid,
-        downloaded: 700,
-        uploaded: 600,
-        left: 0}
-    Tracker.Peer.announce(pid, Map.merge(test_data, update))
+        trackerid: trackerid}
+    Tracker.Peer.announce(pid, generate_announce_data(update))
 
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 0
@@ -254,26 +183,18 @@ defmodule Tracker.TorrentTest do
 
   # Randomly killing a new torrent =====================================
   test "when killed it should respawn and collect data from the peers" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
-    key = {:n, :l, {Tracker.Torrent, @info_hash}}
+    torrent_pid = create_torrent(%{info_hash: "xxxxxxxxxxxxxxxxxxxx"})
+    key = {:n, :l, {Tracker.Torrent, "xxxxxxxxxxxxxxxxxxxx"}}
     assert torrent_pid == :gproc.where(key)
 
     # spawn some peers
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-
-    peers = for peer <- ["foo", "bar"] do
+    peers = for peer_id <- ["foo", "bar"] do
       {:ok, pid, trackerid} =
-        Tracker.Torrent.add_peer(torrent_pid, Map.put(test_data, :peer_id, peer))
+        create_peer(torrent_pid, %{peer_id: peer_id})
       {pid, trackerid}
     end
     :timer.sleep 10
+
     # announce the first peer as complete
     [{first_pid, first_trackerid}|_] = peers
     update =
@@ -282,14 +203,15 @@ defmodule Tracker.TorrentTest do
         downloaded: 700,
         uploaded: 600,
         left: 0}
-    Tracker.Peer.announce(first_pid, Map.merge(test_data, update))
+    Tracker.Peer.announce(first_pid, generate_announce_data(update))
     :timer.sleep 10
 
     assert :gproc.get_value({:c, :l, :incomplete}, torrent_pid) == 1
     assert :gproc.get_value({:c, :l, :complete}, torrent_pid) == 1
 
+    # kill the tracker
     Process.exit(torrent_pid, :kill)
-    {respawned_pid, _} = :gproc.await key
+    {respawned_pid, _} = :gproc.await(key, 2000)
     :timer.sleep 10
     assert :gproc.get_value({:c, :l, :incomplete}, respawned_pid) == 1
     assert :gproc.get_value({:c, :l, :complete}, respawned_pid) == 1

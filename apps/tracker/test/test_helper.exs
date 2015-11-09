@@ -38,16 +38,20 @@ defmodule TrackerTest.Helpers do
     tracker_pid
   end
 
-  def create_peer(torrent_pid, data \\ %{}) do
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
+  @peer_data %{info_hash: @info_hash,
+               ip: {127, 0, 0, 1}, port: 31337,
+               peer_id: "foo",
+               event: "started",
+               downloaded: 0,
+               uploaded: 0,
+               left: 700}
 
-    Tracker.Torrent.add_peer(torrent_pid, Map.merge(test_data, data))
+  def create_peer(torrent_pid, data \\ %{}) do
+    Tracker.Torrent.add_peer(torrent_pid, Map.merge(@peer_data, data))
+  end
+
+  def generate_announce_data(data \\ %{}) do
+    peer_data = Map.delete(@peer_data, :event)
+    Map.merge(peer_data, data)
   end
 end
