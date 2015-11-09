@@ -1,9 +1,7 @@
 defmodule Tracker.PeerTest do
   use ExUnit.Case
+  import TrackerTest.Helpers
   doctest Tracker.Peer
-
-  @info_hash "xxxxxxxxxxxxxxxxxxxx"
-  @dummy_meta_info %{info_hash: "xxxxxxxxxxxxxxxxxxxx", size: 100, name: "test"}
 
   setup_all do
     :ok = Logger.remove_backend(:console)
@@ -29,55 +27,30 @@ defmodule Tracker.PeerTest do
   end
 
   test "should return an empty list if no other peers are registered" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
-    key = {:n, :l, {Tracker.Torrent, @info_hash}}
-    assert torrent_pid == :gproc.where(key)
+    torrent_pid = create_torrent()
 
-    # spawn a peer
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-
-    {:ok, pid, _trackerid} =
-      Tracker.Torrent.add_peer(torrent_pid, test_data)
+    {:ok, pid, _trackerid} = create_peer(torrent_pid, %{port: 12340})
 
     peers = Bencode.decode(Tracker.Peer.get_peers(pid))
-    # the original test_data should not be in the results
-    refute Enum.any?(peers, fn peer -> peer["port"] == test_data[:port] end)
+    # the requesting peer should not be in the results
+    refute Enum.any?(peers, fn peer -> peer["port"] == 12340 end)
   end
 
   test "should get a list of peers on request and exclude the calling peer from the results" do
-    torrent_pid = Tracker.Torrent.create(@dummy_meta_info)
-    key = {:n, :l, {Tracker.Torrent, @info_hash}}
-    assert torrent_pid == :gproc.where(key)
+    torrent_pid = create_torrent()
 
     # spawn some peers
-    test_data =
-      %{info_hash: @info_hash,
-        ip: {127, 0, 0, 1}, port: 31337,
-        peer_id: "foo",
-        event: "started",
-        downloaded: 0,
-        uploaded: 0,
-        left: 700}
-
-    for {peer, port} <- [{"bar", 31338}, {"baz", 31339}, {"quun", 31340}, {"qux", 31341}] do
-      peer = Map.merge(test_data, %{peer_id: peer, port: port})
-      {:ok, pid, trackerid} =
-        Tracker.Torrent.add_peer(torrent_pid, peer)
-      {pid, trackerid}
+    for {peer_id, port} <- [{"bar", 12341}, {"baz", 12342}, {"quun", 12343}, {"qux", 12344}] do
+      create_peer(torrent_pid, %{peer_id: peer_id, port: port})
     end
 
+    test_data = %{peer_id: "foo", port: 12340}
     {:ok, pid, _trackerid} =
-      Tracker.Torrent.add_peer(torrent_pid, test_data)
+      create_peer(torrent_pid, test_data)
 
     peers = Bencode.decode(Tracker.Peer.get_peers(pid))
-    # the original test_data should not be in the results
+    assert length(peers) == 4
+    # the requesting peer should not be in the results
     refute Enum.any?(peers, fn peer -> peer["port"] == test_data[:port] end)
   end
 

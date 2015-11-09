@@ -25,3 +25,28 @@ defmodule TrackerTest.Request do
   end
 
 end
+
+defmodule TrackerTest.Helpers do
+  @info_hash "xxxxxxxxxxxxxxxxxxxx"
+  @dummy_meta_info %{info_hash: "xxxxxxxxxxxxxxxxxxxx", size: 100, name: "test"}
+
+  def create_torrent(data \\ %{}) do
+    Tracker.Torrent.create(Map.merge(@dummy_meta_info, data))
+    {tracker_pid, _} = :gproc.await({:n, :l, {Tracker.Torrent, @info_hash}})
+
+    tracker_pid
+  end
+
+  def create_peer(torrent_pid, data \\ %{}) do
+    test_data =
+      %{info_hash: @info_hash,
+        ip: {127, 0, 0, 1}, port: 31337,
+        peer_id: "foo",
+        event: "started",
+        downloaded: 0,
+        uploaded: 0,
+        left: 700}
+
+    Tracker.Torrent.add_peer(torrent_pid, Map.merge(test_data, data))
+  end
+end
