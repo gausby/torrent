@@ -31,7 +31,7 @@ defmodule Tracker.PeerTest do
 
     {:ok, pid, _trackerid} = create_peer(torrent_pid, %{port: 12340})
 
-    peers = Bencode.decode(Tracker.Peer.get_peers(pid))
+    peers = Tracker.Peer.get_peers(pid)
     # the requesting peer should not be in the results
     refute Enum.any?(peers, fn peer -> peer["port"] == 12340 end)
   end
@@ -48,10 +48,9 @@ defmodule Tracker.PeerTest do
     {:ok, pid, _trackerid} =
       create_peer(torrent_pid, test_data)
 
-    peers = Bencode.decode(Tracker.Peer.get_peers(pid))
+    peers = Tracker.Peer.get_peers(pid)
     assert length(peers) == 4
     # the requesting peer should not be in the results
     refute Enum.any?(peers, fn peer -> peer["port"] == test_data[:port] end)
   end
-
 end

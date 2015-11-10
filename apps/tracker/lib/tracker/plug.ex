@@ -59,7 +59,8 @@ defmodule Tracker.Plug do
           info_hash: info_hash, peer_id: peer_id,
           ip: params["ip"] || conn.remote_ip, port: port,
           uploaded: uploaded, downloaded: downloaded, left: left,
-          trackerid: params["trackerid"] || nil
+          trackerid: params["trackerid"] || nil,
+          numwant: params["numwant"] || 35
         }
         get_pid(conn, announce)
 
@@ -90,9 +91,11 @@ defmodule Tracker.Plug do
 
   defp handle_announce(conn, pid, %{event: "started", trackerid: nil} = announce) do
     case Tracker.Torrent.add_peer(pid, announce) do
-      {:ok, _pid, trackerid} ->
-        # todo, send numwant peers back
-        response = announce_response(trackerid)
+      {:ok, peer_pid, trackerid} ->
+        # send numwant (or 35) peers back
+        response =
+          %{peers: Tracker.Peer.get_peers(peer_pid, %{numwant: announce.numwant}),
+            trackerid: trackerid}
         send_resp(conn, 201, Bencode.encode(response))
 
       _ ->
@@ -110,28 +113,32 @@ defmodule Tracker.Plug do
 
   defp handle_announce(conn, pid, %{event: "stopped"} = announce) do
     Tracker.Peer.announce(pid, announce)
-    # todo send zero peers back
-    response = announce_response(announce.trackerid)
+    # send zero peers back
+    response =
+      %{peers: [],
+        trackerid: announce.trackerid}
+
     send_resp(conn, 200, Bencode.encode(response))
   end
 
   defp handle_announce(conn, pid, %{event: "completed"} = announce) do
     Tracker.Peer.announce(pid, announce)
     # todo send a list of 35-50 (or numwant) peers (without seeders!) to the peer
-    response = announce_response(announce.trackerid)
+    response =
+      %{peers: Tracker.Peer.get_peers(pid, %{numwant: announce[:numwant]}),
+        trackerid: announce.trackerid}
+
     send_resp(conn, 200, Bencode.encode(response))
   end
 
   defp handle_announce(conn, pid, announce) do
     Tracker.Peer.announce(pid, announce)
-    # todo send a list of peers back
-    response = announce_response(announce.trackerid)
-    send_resp(conn, 200, Bencode.encode(response))
-  end
+    # send a list of peers back
+    response =
+      %{peers: Tracker.Peer.get_peers(pid, %{numwant: announce[:numwant]}),
+        trackerid: announce.trackerid}
 
-  defp announce_response(trackerid) do
-    # todo, send peers back; and set a limit to how many peers we send back
-    %{peers: [], trackerid: trackerid}
+    send_resp(conn, 200, Bencode.encode(response))
   end
 
   #=SCRAPE =============================================================
