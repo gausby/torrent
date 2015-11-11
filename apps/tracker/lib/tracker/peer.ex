@@ -77,7 +77,8 @@ defmodule Tracker.Peer do
           %{ip: ip, port: state.port}
       end
 
-    :gproc.reg({:p, :l, {trackerid, info_hash}}, {formatted_ip})
+    status = if state.complete, do: :complete, else: :incomplete
+    :gproc.reg({:p, :l, {trackerid, info_hash}}, {status, formatted_ip})
 
     # Optionally, if the peer specifies an identifier key, this can be
     # used to change the ip and port information later.
@@ -108,6 +109,11 @@ defmodule Tracker.Peer do
   def handle_cast({:announce, %{event: "completed"} = status}, state) do
     Logger.info "#{state.trackerid} marked #{state.info_hash} as completed"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
+
+    status_key = {:p, :l, {state.trackerid, state.info_hash}}
+    status_update = Tuple.insert_at(:gproc.get_value(status_key), 0, :complete)
+    :gproc.set_value(status_key, status_update)
+
     :gproc.update_counter({:c, :l, :incomplete}, tracker_pid, -1)
     :gproc.update_counter({:c, :l, :complete}, tracker_pid, 1)
     :gproc.update_counter({:c, :l, :downloads}, tracker_pid, 1)
@@ -132,14 +138,32 @@ defmodule Tracker.Peer do
   # call
   def handle_call({:get_peers, %{numwant: 0}}, _from, state),
     do: {:reply, [], state}
-  def handle_call({:get_peers, %{numwant: numwant}}, _from, state) do
-    match = {{:p, :l, {:'$0', state.info_hash}}, :'_', :'$1'}
+  def handle_call({:get_peers, %{numwant: numwant}}, _from, %{complete: true} = state) do
+    # completed peers should not get seeders, only incomplete peers
+    key = {:p, :l, {:'$0', state.info_hash}}
+    match = {key, :'_', {:incomplete, :'$1'}}
     guard = [{:'=/=', :'$0', state.trackerid}] # filter out the calling peer
     format = [:'$1']
     peers =
       case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
         {pids, _} ->
-          Enum.map(pids, &(elem(&1, 0)))
+          pids
+
+        :"$end_of_table" ->
+          []
+      end
+
+    {:reply, peers, state}
+  end
+  def handle_call({:get_peers, %{numwant: numwant}}, _from, state) do
+    key = {:p, :l, {:'$0', state.info_hash}}
+    match = {key, :'_', {:'_', :'$1'}}
+    guard = [{:'=/=', :'$0', state.trackerid}] # filter out the calling peer
+    format = [:'$1']
+    peers =
+      case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
+        {pids, _} ->
+          pids
 
         :"$end_of_table" ->
           []

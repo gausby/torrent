@@ -53,4 +53,32 @@ defmodule Tracker.PeerTest do
     # the requesting peer should not be in the results
     refute Enum.any?(peers, fn peer -> peer["port"] == test_data[:port] end)
   end
+
+  test "a completed peer should only get incomplete peers back when requesting peers" do
+    torrent_pid = create_torrent()
+
+    # spawn some peers
+    peers = for {peer_id, port} <- [{"quun", 12343}, {"bar", 12341}, {"baz", 12342}] do
+      create_peer(torrent_pid, %{peer_id: peer_id, port: port})
+    end
+
+    test_data = %{peer_id: "foo", port: 12340}
+    {:ok, pid, trackerid} =
+      create_peer(torrent_pid, test_data)
+
+    # complete "foo" and "quun"
+    update = %{trackerid: trackerid, event: "completed", left: 0}
+    Tracker.Peer.announce(pid, generate_announce_data(update))
+    {:ok, quun_pid, quun_trackerid} = hd peers
+    update = %{trackerid: quun_trackerid, event: "completed", left: 0}
+    Tracker.Peer.announce(quun_pid, generate_announce_data(update))
+    :timer.sleep 10
+
+    peers = Tracker.Peer.get_peers(pid)
+    assert length(peers) == 2
+    # ensure that the ports we get are the expected ones
+    ports = Enum.map(peers, &(&1[:port])) |> Enum.sort
+    assert ports == [12341, 12342]
+  end
+
 end
