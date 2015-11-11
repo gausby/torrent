@@ -78,7 +78,7 @@ defmodule Tracker.Peer do
       end
 
     status = if state.complete, do: :complete, else: :incomplete
-    :gproc.reg({:p, :l, {trackerid, info_hash}}, {status, formatted_ip})
+    :gproc.reg({:p, :l, info_hash}, {status, formatted_ip})
 
     # Optionally, if the peer specifies an identifier key, this can be
     # used to change the ip and port information later.
@@ -110,7 +110,7 @@ defmodule Tracker.Peer do
     Logger.info "#{state.trackerid} marked #{state.info_hash} as completed"
     tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
 
-    status_key = {:p, :l, {state.trackerid, state.info_hash}}
+    status_key = {:p, :l, state.info_hash}
     status_update = Tuple.insert_at(:gproc.get_value(status_key), 0, :complete)
     :gproc.set_value(status_key, status_update)
 
@@ -140,7 +140,7 @@ defmodule Tracker.Peer do
     do: {:reply, [], state}
   def handle_call({:get_peers, %{numwant: numwant}}, _from, %{complete: true} = state) do
     # completed peers should not get seeders, only incomplete peers
-    key = {:p, :l, {:'_', state.info_hash}}
+    key = {:p, :l, state.info_hash}
     match = {key, :'$0', {:incomplete, :'$1'}}
     guard = [{:'=/=', :'$0', self()}] # filter out the calling peer
     format = [:'$1']
@@ -156,7 +156,7 @@ defmodule Tracker.Peer do
     {:reply, peers, state}
   end
   def handle_call({:get_peers, %{numwant: numwant}}, _from, state) do
-    key = {:p, :l, {:'_', state.info_hash}}
+    key = {:p, :l, state.info_hash}
     match = {key, :'$0', {:'_', :'$1'}}
     guard = [{:'=/=', :'$0', self()}] # filter out the calling peer
     format = [:'$1']
