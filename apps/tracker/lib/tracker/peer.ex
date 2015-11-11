@@ -140,9 +140,9 @@ defmodule Tracker.Peer do
     do: {:reply, [], state}
   def handle_call({:get_peers, %{numwant: numwant}}, _from, %{complete: true} = state) do
     # completed peers should not get seeders, only incomplete peers
-    key = {:p, :l, {:'$0', state.info_hash}}
-    match = {key, :'_', {:incomplete, :'$1'}}
-    guard = [{:'=/=', :'$0', state.trackerid}] # filter out the calling peer
+    key = {:p, :l, {:'_', state.info_hash}}
+    match = {key, :'$0', {:incomplete, :'$1'}}
+    guard = [{:'=/=', :'$0', self()}] # filter out the calling peer
     format = [:'$1']
     peers =
       case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
@@ -156,9 +156,9 @@ defmodule Tracker.Peer do
     {:reply, peers, state}
   end
   def handle_call({:get_peers, %{numwant: numwant}}, _from, state) do
-    key = {:p, :l, {:'$0', state.info_hash}}
-    match = {key, :'_', {:'_', :'$1'}}
-    guard = [{:'=/=', :'$0', state.trackerid}] # filter out the calling peer
+    key = {:p, :l, {:'_', state.info_hash}}
+    match = {key, :'$0', {:'_', :'$1'}}
+    guard = [{:'=/=', :'$0', self()}] # filter out the calling peer
     format = [:'$1']
     peers =
       case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
