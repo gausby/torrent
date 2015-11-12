@@ -202,7 +202,7 @@ defmodule Tracker.PlugTest do
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
     response = Bencode.decode(conn.resp_body)
     refute response["failure_reason"]
-    assert response["peers"] == [%{"ip" => "127.0.0.1", "port" => 12341}]
+    assert response["peers"] == [%{"peer_id" => "bar", "ip" => "127.0.0.1", "port" => 12341}]
   end
 
   # scrape =============================================================

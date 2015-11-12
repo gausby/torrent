@@ -44,8 +44,9 @@ defmodule Tracker.Peer do
     GenServer.call(pid, :complete?)
   end
 
-  def get_peers(pid, opts \\ %{numwant: 35, compact: false}) do
-    GenServer.call(pid, {:get_peers, opts})
+  def get_peers(pid, opts \\ %{}) do
+    defaults = %{no_peer_id: false, numwant: 35, compact: false}
+    GenServer.call(pid, {:get_peers, Map.merge(defaults, opts)})
   end
 
   # Server callbacks
@@ -72,9 +73,9 @@ defmodule Tracker.Peer do
     formatted_ip =
       case state.ip do
         {a, b, c, d} ->
-          %{ip: "#{a}.#{b}.#{c}.#{d}", port: state.port}
+          %{peer_id: state.peer_id, ip: "#{a}.#{b}.#{c}.#{d}", port: state.port}
         ip when is_binary(ip) ->
-          %{ip: ip, port: state.port}
+          %{peer_id: state.peer_id, ip: ip, port: state.port}
       end
 
     status = if state.complete, do: :complete, else: :incomplete
@@ -138,32 +139,24 @@ defmodule Tracker.Peer do
   # call
   def handle_call({:get_peers, %{numwant: 0}}, _from, state),
     do: {:reply, [], state}
-  def handle_call({:get_peers, %{numwant: numwant}}, _from, %{complete: true} = state) do
+  def handle_call({:get_peers, req}, _from, state) do
     # completed peers should not get seeders, only incomplete peers
+    interest = if state.complete, do: :incomplete, else: :'_'
+
     key = {:p, :l, state.info_hash}
-    match = {key, :'$0', {:incomplete, :'$1'}}
+    match = {key, :'$0', {interest, :'$1'}}
     guard = [{:'=/=', :'$0', self()}] # filter out the calling peer
     format = [:'$1']
     peers =
-      case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
-        {pids, _} ->
-          pids
+      case :gproc.select({:l, :p}, [{match, guard, format}], req.numwant) do
+        {peers, _} ->
+          cond do
+            req.no_peer_id == true ->
+              Enum.map(peers, &(Map.delete(&1, :peer_id)))
 
-        :"$end_of_table" ->
-          []
-      end
-
-    {:reply, peers, state}
-  end
-  def handle_call({:get_peers, %{numwant: numwant}}, _from, state) do
-    key = {:p, :l, state.info_hash}
-    match = {key, :'$0', {:'_', :'$1'}}
-    guard = [{:'=/=', :'$0', self()}] # filter out the calling peer
-    format = [:'$1']
-    peers =
-      case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
-        {pids, _} ->
-          pids
+            :otherwise ->
+              peers
+          end
 
         :"$end_of_table" ->
           []

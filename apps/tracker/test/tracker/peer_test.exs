@@ -81,4 +81,39 @@ defmodule Tracker.PeerTest do
     assert ports == [12341, 12342]
   end
 
+  test "when requesting peers the returned list of peers should contain peer ids" do
+    torrent_pid = create_torrent()
+
+    # spawn some peers
+    for {peer_id, port} <- [{"bar", 12341}, {"baz", 12342}] do
+      create_peer(torrent_pid, %{peer_id: peer_id, port: port})
+    end
+
+    test_data = %{peer_id: "foo", port: 12340}
+    {:ok, pid, _trackerid} =
+      create_peer(torrent_pid, test_data)
+
+    peers = Tracker.Peer.get_peers(pid)
+    # ensure that the ports we get are the expected ones
+    peer_ids = Enum.map(peers, &(&1[:peer_id])) |> Enum.sort
+    assert peer_ids == ["bar", "baz"]
+  end
+
+  test "peer list should not contain peer ids if no_peer_id is true" do
+    torrent_pid = create_torrent()
+
+    # spawn some peers
+    for {peer_id, port} <- [{"bar", 12341}, {"baz", 12342}] do
+      create_peer(torrent_pid, %{peer_id: peer_id, port: port})
+    end
+
+    test_data = %{peer_id: "foo", port: 12340}
+    {:ok, pid, _trackerid} =
+      create_peer(torrent_pid, test_data)
+
+    peers = Tracker.Peer.get_peers(pid, %{no_peer_id: true})
+    # ensure that the ports we get are the expected ones
+    peer_ids = Enum.map(peers, &(&1[:peer_id])) |> Enum.sort
+    refute peer_ids == ["bar", "baz"]
+  end
 end
