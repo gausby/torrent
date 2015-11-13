@@ -73,13 +73,16 @@ defmodule Tracker.Peer do
     formatted_ip =
       case state.ip do
         {a, b, c, d} ->
-          %{peer_id: state.peer_id, ip: "#{a}.#{b}.#{c}.#{d}", port: state.port}
-        ip when is_binary(ip) ->
-          %{peer_id: state.peer_id, ip: ip, port: state.port}
-      end
+          "#{a}.#{b}.#{c}.#{d}"
 
+        ip when is_binary(ip) ->
+          ip
+      end
     status = if state.complete, do: :complete, else: :incomplete
-    :gproc.reg({:p, :l, info_hash}, {status, formatted_ip})
+    :gproc.reg(
+      {:p, :l, info_hash},
+      {status, %{ip: formatted_ip, peer_id: state.peer_id, port: state.port}}
+    )
 
     # Optionally, if the peer specifies an identifier key, this can be
     # used to change the ip and port information later.
