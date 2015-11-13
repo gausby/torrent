@@ -109,12 +109,12 @@ defmodule Tracker.Peer do
   end
   def handle_cast({:announce, %{event: "completed"} = status}, state) do
     Logger.info "#{state.trackerid} marked #{state.info_hash} as completed"
-    tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
 
     status_key = {:p, :l, state.info_hash}
     status_update = put_elem(:gproc.get_value(status_key), 0, :complete)
     :gproc.set_value(status_key, status_update)
 
+    tracker_pid = :gproc.where({:n, :l, {Tracker.Torrent, state.info_hash}})
     :gproc.update_counter({:c, :l, :incomplete}, tracker_pid, -1)
     :gproc.update_counter({:c, :l, :complete}, tracker_pid, 1)
     :gproc.update_counter({:c, :l, :downloads}, tracker_pid, 1)
