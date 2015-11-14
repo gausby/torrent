@@ -93,9 +93,13 @@ defmodule Tracker.Plug do
     case Tracker.Torrent.add_peer(pid, announce) do
       {:ok, peer_pid, trackerid} ->
         # send numwant (or 35) peers back
+        {_, statistics} = get_statistics(announce.info_hash)
+
         response =
           %{peers: Tracker.Peer.get_peers(peer_pid, %{numwant: announce.numwant}),
-            trackerid: trackerid}
+            trackerid: trackerid,
+            complete: statistics[:complete],
+            incomplete: statistics[:incomplete]}
         send_resp(conn, 201, Bencode.encode(response))
 
       _ ->
@@ -113,30 +117,39 @@ defmodule Tracker.Plug do
 
   defp handle_announce(conn, pid, %{event: "stopped"} = announce) do
     Tracker.Peer.announce(pid, announce)
-    # send zero peers back
+    {_, statistics} = get_statistics(announce.info_hash)
+
     response =
-      %{peers: [],
-        trackerid: announce.trackerid}
+      %{peers: [], # send zero peers back
+        trackerid: announce.trackerid,
+        complete: statistics[:complete],
+        incomplete: statistics[:incomplete]}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
 
   defp handle_announce(conn, pid, %{event: "completed"} = announce) do
     Tracker.Peer.announce(pid, announce)
-    # todo send a list of 35-50 (or numwant) peers (without seeders!) to the peer
+    {_, statistics} = get_statistics(announce.info_hash)
+    # send a list of 35-50 (or numwant) peers (without seeders!) to the peer
     response =
       %{peers: Tracker.Peer.get_peers(pid, %{numwant: announce[:numwant]}),
-        trackerid: announce.trackerid}
+        trackerid: announce.trackerid,
+        complete: statistics[:complete],
+        incomplete: statistics[:incomplete]}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
 
   defp handle_announce(conn, pid, announce) do
     Tracker.Peer.announce(pid, announce)
+    {_, statistics} = get_statistics(announce.info_hash)
     # send a list of peers back
     response =
       %{peers: Tracker.Peer.get_peers(pid, %{numwant: announce[:numwant]}),
-        trackerid: announce.trackerid}
+        trackerid: announce.trackerid,
+        complete: statistics[:complete],
+        incomplete: statistics[:incomplete]}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
@@ -193,4 +206,11 @@ defmodule Tracker.Plug do
 
   defp extract_info_hash(<<"info_hash=", info_hash::binary-size(20)>>),
     do: info_hash
+
+  # Helper for getting the statistics for a given tracked torrent.
+  # This should get refactored at some point
+  defp get_statistics(info_hash) do
+    torrent_pid = :gproc.where({:n, :l, {Tracker.Torrent, info_hash}})
+    Tracker.Torrent.get_statistics(torrent_pid, info_hash)
+  end
 end

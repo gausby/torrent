@@ -205,6 +205,33 @@ defmodule Tracker.PlugTest do
     assert response["peers"] == [%{"peer_id" => "bar", "ip" => "127.0.0.1", "port" => 12341}]
   end
 
+  test "announce should statistics for the given torrent" do
+    info_hash = "aaaaaaaaaaaaaaaaaaaa"
+    torrent_pid = create_torrent(%{info_hash: info_hash, size: 700, name: "foo bar"})
+    # spawn some peers
+    for {peer_id, port} <- [{"bar", 12341}] do
+      peer_data =
+        %{info_hash: info_hash,
+          peer_id: peer_id,
+          port: port}
+      create_peer(torrent_pid, peer_data)
+    end
+    :timer.sleep 10
+    # start and announce peer
+    request =
+      %Request{
+        event: "started",
+        numwant: 35,
+        port: 31337,
+        info_hash: info_hash}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+
+    assert response["incomplete"] == 2
+    assert response["complete"] == 0
+  end
+
   # scrape =============================================================
   test "should be able to scrape" do
     info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
