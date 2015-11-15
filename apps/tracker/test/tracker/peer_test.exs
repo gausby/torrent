@@ -116,4 +116,21 @@ defmodule Tracker.PeerTest do
     peer_ids = Enum.map(peers, &(&1[:peer_id])) |> Enum.sort
     refute peer_ids == ["bar", "baz"]
   end
+
+  test "peer list should return peers in compact format if compact is true" do
+    torrent_pid = create_torrent()
+
+    # spawn some peers
+    for {peer_id, port} <- [{"bar", 12341}, {"bar", 12342}] do
+      create_peer(torrent_pid, %{peer_id: peer_id, port: port})
+    end
+
+    test_data = %{peer_id: "foo", port: 12340}
+    {:ok, pid, _trackerid} =
+      create_peer(torrent_pid, test_data)
+
+    peers = Tracker.Peer.get_peers(pid, %{compact: true})
+    # ensure that the ports we get are the expected ones
+    assert peers == <<127, 0, 0, 1, 48, 53, 127, 0, 0, 1, 48, 54>>
+  end
 end

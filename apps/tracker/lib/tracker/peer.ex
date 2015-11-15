@@ -79,10 +79,15 @@ defmodule Tracker.Peer do
           ip
       end
     status = if state.complete, do: :complete, else: :incomplete
-    :gproc.reg(
-      {:p, :l, info_hash},
-      {status, %{ip: formatted_ip, peer_id: state.peer_id, port: state.port}}
-    )
+    compact = case state.ip do
+      {a, b, c, d} ->
+        <<a, b, c, d, state.port::size(16)>>
+
+      _ ->
+        nil
+    end
+    data = %{ip: formatted_ip, peer_id: state.peer_id, port: state.port, compact: compact}
+    :gproc.reg({:p, :l, info_hash}, {status, data})
 
     # Optionally, if the peer specifies an identifier key, this can be
     # used to change the ip and port information later.
@@ -154,8 +159,14 @@ defmodule Tracker.Peer do
       case :gproc.select({:l, :p}, [{match, guard, format}], req.numwant) do
         {peers, _} ->
           cond do
+            req.compact == true ->
+              peers
+              |> Enum.filter_map(&(&1[:compact] != nil), fn %{compact: address} -> address end)
+              |> to_string
+
             req.no_peer_id == true ->
-              Enum.map(peers, &(Map.delete(&1, :peer_id)))
+              peers
+              |> Enum.map(&(Map.delete(&1, :peer_id)))
 
             :otherwise ->
               peers
