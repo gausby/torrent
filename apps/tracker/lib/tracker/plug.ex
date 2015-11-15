@@ -60,7 +60,8 @@ defmodule Tracker.Plug do
           ip: params["ip"] || conn.remote_ip, port: port,
           uploaded: uploaded, downloaded: downloaded, left: left,
           trackerid: params["trackerid"] || nil,
-          numwant: params["numwant"] || 35
+          numwant: params["numwant"] || 35,
+          compact: params["compact"] == 1
         }
         get_pid(conn, announce)
 
@@ -96,7 +97,7 @@ defmodule Tracker.Plug do
         {_, statistics} = get_statistics(announce.info_hash)
 
         response =
-          %{peers: Tracker.Peer.get_peers(peer_pid, %{numwant: announce.numwant}),
+          %{peers: Tracker.Peer.get_peers(peer_pid, announce),
             trackerid: trackerid,
             complete: statistics[:complete],
             incomplete: statistics[:incomplete]}
@@ -133,7 +134,7 @@ defmodule Tracker.Plug do
     {_, statistics} = get_statistics(announce.info_hash)
     # send a list of 35-50 (or numwant) peers (without seeders!) to the peer
     response =
-      %{peers: Tracker.Peer.get_peers(pid, %{numwant: announce[:numwant]}),
+      %{peers: Tracker.Peer.get_peers(pid, announce),
         trackerid: announce.trackerid,
         complete: statistics[:complete],
         incomplete: statistics[:incomplete]}
@@ -146,7 +147,7 @@ defmodule Tracker.Plug do
     {_, statistics} = get_statistics(announce.info_hash)
     # send a list of peers back
     response =
-      %{peers: Tracker.Peer.get_peers(pid, %{numwant: announce[:numwant]}),
+      %{peers: Tracker.Peer.get_peers(pid, announce),
         trackerid: announce.trackerid,
         complete: statistics[:complete],
         incomplete: statistics[:incomplete]}

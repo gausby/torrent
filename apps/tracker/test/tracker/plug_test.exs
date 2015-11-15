@@ -205,9 +205,35 @@ defmodule Tracker.PlugTest do
     expected =
       %{"peer_id" => "bar",
         "ip" => "127.0.0.1",
-        "port" => 12341,
-        "compact" => <<127, 0, 0, 1, 48, 53>>}
+        "port" => 12341}
     assert response["peers"] == [expected]
+  end
+
+  test "announce should return a list of peers in compact format if requested as such" do
+    info_hash = "aaaaaaaaaaaaaaaaaaaa"
+    torrent_pid = create_torrent(%{info_hash: info_hash, size: 700, name: "foo bar"})
+    # spawn some peers
+    for {peer_id, port} <- [{"bar", 12341}] do
+      peer_data =
+        %{info_hash: info_hash,
+          peer_id: peer_id,
+          port: port}
+      create_peer(torrent_pid, peer_data)
+    end
+    :timer.sleep 10
+    # start peer
+    request =
+      %Request{
+        event: "started",
+        numwant: 35,
+        port: 31337,
+        info_hash: info_hash,
+        compact: 1}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    refute response["failure_reason"]
+    assert response["peers"] == <<127, 0, 0, 1, 48, 53>>
   end
 
   test "announce should statistics for the given torrent" do

@@ -166,10 +166,11 @@ defmodule Tracker.Peer do
 
             req.no_peer_id == true ->
               peers
-              |> Enum.map(&(Map.delete(&1, :peer_id)))
+              |> Enum.map(fn %{ip: ip, port: port} -> %{ip: ip, port: port} end)
 
             :otherwise ->
               peers
+              |> Enum.map(&(Map.delete(&1, :compact)))
           end
 
         :"$end_of_table" ->
