@@ -60,6 +60,26 @@ defmodule Tracker.PlugTest do
     assert response["peers"] == []
   end
 
+  test "announce should return an interval" do
+    Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        info_hash: "aaaaaaaaaaaaaaaaaaaa"
+      }
+      |> Map.from_struct
+      |> Map.delete(:trackerid)
+      |> Map.delete(:ip)
+
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+
+    refute response["failure_reason"]
+    assert is_number(response["interval"])
+  end
+
   test "announce should return an error if event is started and a trackerid is set" do
     Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
     request =

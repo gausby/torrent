@@ -48,6 +48,8 @@ defmodule Tracker.Plug do
   })
 
   #=ANNOUNCE ===========================================================
+  @default_interval 300 # five minutes
+
   defp guard_announce(%Plug.Conn{params: params} = conn) do
     case params do
       # ensure that all the required fields are set and valid
@@ -100,7 +102,8 @@ defmodule Tracker.Plug do
           %{peers: Tracker.Peer.get_peers(peer_pid, announce),
             trackerid: trackerid,
             complete: statistics[:complete],
-            incomplete: statistics[:incomplete]}
+            incomplete: statistics[:incomplete],
+            interval: @default_interval}
         send_resp(conn, 201, Bencode.encode(response))
 
       _ ->
@@ -124,7 +127,8 @@ defmodule Tracker.Plug do
       %{peers: [], # send zero peers back
         trackerid: announce.trackerid,
         complete: statistics[:complete],
-        incomplete: statistics[:incomplete]}
+        incomplete: statistics[:incomplete],
+        interval: @default_interval}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
@@ -137,7 +141,8 @@ defmodule Tracker.Plug do
       %{peers: Tracker.Peer.get_peers(pid, announce),
         trackerid: announce.trackerid,
         complete: statistics[:complete],
-        incomplete: statistics[:incomplete]}
+        incomplete: statistics[:incomplete],
+        interval: @default_interval}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
@@ -150,7 +155,8 @@ defmodule Tracker.Plug do
       %{peers: Tracker.Peer.get_peers(pid, announce),
         trackerid: announce.trackerid,
         complete: statistics[:complete],
-        incomplete: statistics[:incomplete]}
+        incomplete: statistics[:incomplete],
+        interval: @default_interval}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
