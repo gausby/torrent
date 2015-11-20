@@ -1,17 +1,53 @@
 defmodule Tracker do
   use Application
+  use Supervisor
   require Logger
 
   def start(_type, _args) do
-    import Supervisor.Spec, warn: false
+    __MODULE__.start_link
+  end
 
+  def start_link do
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
+  def init(:ok) do
     children = [
-      supervisor(Tracker.Torrent.Supervisor, []),
-      supervisor(Tracker.Peer.Supervisor, []),
+      worker(Tracker.File, [], restart: :transient)
     ]
+    supervise(children, strategy: :simple_one_for_one)
+  end
 
-    opts = [strategy: :one_for_one, name: Tracker.Supervisor]
-    Logger.info "Starting #{__MODULE__}"
-    Supervisor.start_link(children, opts)
+  def add(info_hash) do
+    case Supervisor.start_child(Tracker, [info_hash]) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error, {:already_started, pid}} ->
+        {:ok, pid}
+    end
+  end
+
+  def remove(info_hash) do
+    pid = :gproc.where({:n, :l, {Tracker.File, info_hash}})
+    Supervisor.terminate_child(Tracker, pid)
   end
 end
+
+# defmodule Tracker do
+#   use Application
+#   require Logger
+
+#   def start(_type, _args) do
+#     import Supervisor.Spec, warn: false
+
+#     children = [
+#       supervisor(Tracker.Torrent.Supervisor, []),
+#       supervisor(Tracker.Peer.Supervisor, []),
+#     ]
+
+#     opts = [strategy: :one_for_one, name: Tracker.Supervisor]
+#     Logger.info "Starting #{__MODULE__}"
+#     Supervisor.start_link(children, opts)
+#   end
+# end
