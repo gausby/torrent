@@ -1,6 +1,10 @@
 defmodule Tracker.File.Peer.Announce do
   use GenServer
+
+  defstruct info_hash: nil, left: nil, downloaded: nil, uploaded: nil
+
   @statistics Tracker.File.Statistics
+  @complete? {:p, :l, {__MODULE__, :complete}}
 
   # Client API
   def start_link(info) do
@@ -17,14 +21,36 @@ defmodule Tracker.File.Peer.Announce do
   end
 
   # Server callbacks
-  def init(state) do
-    @statistics.increment_incomplete(state[:info_hash])
+  def init(info) do
+    state = %__MODULE__{info_hash: info[:info_hash]}
+    :gproc.reg(@complete?, false)
     {:ok, state}
   end
 
   # handle announce
-  def handle_call({:announce, _data}, _from, state) do
-    @statistics.a_peer_completed(state[:info_hash])
+  def handle_call({:announce, %{"event" => "started"}}, _from, state) do
+    @statistics.a_peer_started(state.info_hash)
     {:reply, state, state}
   end
+
+  def handle_call({:announce, %{"event" => "completed"}}, _from, state) do
+    @statistics.a_peer_completed(state.info_hash)
+    :gproc.set_value(@complete?, true)
+    {:reply, state, state}
+  end
+
+  def handle_call({:announce, %{"event" => "stopped"}}, _from, state) do
+    if :gproc.get_value(@complete?) do
+      @statistics.a_completed_peer_stopped(state.info_hash)
+    else
+      @statistics.an_incomplete_peer_stopped(state.info_hash)
+    end
+
+    {:reply, state, state}
+  end
+
+  def handle_call({:announce, _}, _from, state) do
+    {:reply, state, state}
+  end
+
 end

@@ -84,7 +84,10 @@ defmodule TrackerTest do
     info_hash = "12345678901234567890"
     Tracker.add(info_hash)
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
-    Tracker.File.Peers.add(info_hash)
+    {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce_data =
+      %{"event" => "started"}
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
     expected = %Tracker.File.Statistics{downloaded: 0, incomplete: 1, complete: 0}
     assert expected == Tracker.File.Statistics.get(info_hash)
   end
@@ -97,6 +100,10 @@ defmodule TrackerTest do
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
     {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
     announce_data =
+      %{"event" => "started"}
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
+
+    announce_data =
       %{"event" => "completed"}
 
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
@@ -105,8 +112,36 @@ defmodule TrackerTest do
   end
 
   # peer stopping ------------------------------------------------------
-  # test "should decrement its incomplete statistics when an incomplete peer stops"
-  # test "should decrement its complete statistics when a complete peer stops"
+  test "should decrement its incomplete statistics when an incomplete peer stops" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+    {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce_data =
+      %{"event" => "started"}
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
+
+    announce_data =
+      %{"event" => "stopped"}
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
+
+    expected = %Tracker.File.Statistics{incomplete: 0, complete: 0, downloaded: 0}
+    assert expected == Tracker.File.Statistics.get(info_hash)
+  end
+
+  test "should decrement its complete statistics when a complete peer stops" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+    {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, %{"event" => "started"})
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, %{"event" => "completed"})
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, %{"event" => "stopped"})
+
+    expected = %Tracker.File.Statistics{incomplete: 0, complete: 0, downloaded: 1}
+    assert expected == Tracker.File.Statistics.get(info_hash)
+  end
 
   # Randomly killing a new torrent =====================================
   # test "when killed it should respawn and collect data from the peers"
