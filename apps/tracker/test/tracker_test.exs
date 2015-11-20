@@ -100,11 +100,11 @@ defmodule TrackerTest do
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
     {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
     announce_data =
-      %{"event" => "started"}
+      %{"event" => "started", "left" => 1, "downloaded" => 1, "uploaded" => 1}
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
 
     announce_data =
-      %{"event" => "completed"}
+      %{"event" => "completed", "left" => 1, "downloaded" => 1, "uploaded" => 1}
 
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
     expected = %Tracker.File.Statistics{incomplete: 0, complete: 1, downloaded: 1}
@@ -149,4 +149,17 @@ defmodule TrackerTest do
   # peer dissapearing/timing out ---------------------------------------
   # test "should decrement its incomplete statistics when an incomplete peer times out"
   # test "should decrement its complete statistics when a complete peer times out"
+
+  test "state should store uploaded/downloaded/left" do
+    info_hash = "xxxxxxxxxxxxxxxxxxxx"
+    trackerid = "yyyyyyyyyyyyyyyyyyyy"
+    opts = [info_hash: info_hash, trackerid: trackerid]
+
+    Tracker.File.Peer.State.start_link(opts)
+    update_data = %{"uploaded" => "10", "left" => "200", "downloaded" => "39"}
+    assert Tracker.File.Peer.State.update(info_hash, trackerid, update_data) == :ok
+    expected = %Tracker.File.Peer.State{uploaded: "10", left: "200", downloaded: "39"}
+    assert Tracker.File.Peer.State.get(info_hash, trackerid) == expected
+  end
+
 end

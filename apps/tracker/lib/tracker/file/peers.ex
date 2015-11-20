@@ -26,5 +26,4 @@ defmodule Tracker.File.Peers do
     {:ok, pid} = Supervisor.start_child(via_name(info_hash), [trackerid])
     {:ok, pid, trackerid}
   end
-
 end

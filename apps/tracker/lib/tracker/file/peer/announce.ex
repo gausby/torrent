@@ -1,10 +1,12 @@
 defmodule Tracker.File.Peer.Announce do
   use GenServer
 
-  defstruct info_hash: nil, left: nil, downloaded: nil, uploaded: nil
+  alias Tracker.File.Statistics
+  alias Tracker.File.Peer.State
 
-  @statistics Tracker.File.Statistics
-  @complete? {:p, :l, {__MODULE__, :complete}}
+  defstruct info_hash: nil, trackerid: nil, peer_id: nil, ip: nil, port: nil
+
+  @complete? {:p, :l, {__MODULE__, :complete?}}
 
   # Client API
   def start_link(info) do
@@ -22,35 +24,45 @@ defmodule Tracker.File.Peer.Announce do
 
   # Server callbacks
   def init(info) do
-    state = %__MODULE__{info_hash: info[:info_hash]}
+    state =
+      %__MODULE__{
+        info_hash: info[:info_hash],
+        trackerid: info[:trackerid],
+        ip: info[:ip],
+        port: info[:port]}
     :gproc.reg(@complete?, false)
     {:ok, state}
   end
 
   # handle announce
-  def handle_call({:announce, %{"event" => "started"}}, _from, state) do
-    @statistics.a_peer_started(state.info_hash)
+  def handle_call({:announce, %{"event" => "started"} = announce}, _from, state) do
+    :ok = State.update(state.info_hash, state.trackerid, announce)
+    Statistics.a_peer_started(state.info_hash)
+    # todo, get peers
     {:reply, state, state}
   end
 
-  def handle_call({:announce, %{"event" => "completed"}}, _from, state) do
-    @statistics.a_peer_completed(state.info_hash)
+  def handle_call({:announce, %{"event" => "completed"} = announce}, _from, state) do
+    :ok = State.update(state.info_hash, state.trackerid, announce)
+    Statistics.a_peer_completed(state.info_hash)
     :gproc.set_value(@complete?, true)
+    # todo, get peers
     {:reply, state, state}
   end
 
   def handle_call({:announce, %{"event" => "stopped"}}, _from, state) do
     if :gproc.get_value(@complete?) do
-      @statistics.a_completed_peer_stopped(state.info_hash)
+      Statistics.a_completed_peer_stopped(state.info_hash)
     else
-      @statistics.an_incomplete_peer_stopped(state.info_hash)
+      Statistics.an_incomplete_peer_stopped(state.info_hash)
     end
 
     {:reply, state, state}
   end
 
-  def handle_call({:announce, _}, _from, state) do
+  def handle_call({:announce, announce}, _from, state) do
+    :ok = State.update(state.info_hash, state.trackerid, announce)
+    # todo, get peers
     {:reply, state, state}
   end
-
 end
