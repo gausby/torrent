@@ -38,16 +38,28 @@ defmodule Tracker.File.Peer.Announce do
   def handle_call({:announce, %{"event" => "started"} = announce}, _from, state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     Statistics.a_peer_started(state.info_hash)
-    # todo, get peers
-    {:reply, state, state}
+    formatted_ip =
+      case announce["ip"] do
+        {a, b, c, d} ->
+          "#{a}.#{b}.#{c}.#{d}"
+
+        ip when is_binary(ip) ->
+          ip
+      end
+    data = %{ip: formatted_ip, peer_id: announce["peer_id"], port: announce["port"]}
+    :gproc.reg({:p, :l, state.info_hash}, data)
+
+    peer_list = get_peers(self(), state.info_hash)
+    {:reply, peer_list, state}
   end
 
   def handle_call({:announce, %{"event" => "completed"} = announce}, _from, state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     Statistics.a_peer_completed(state.info_hash)
     :gproc.set_value(@complete?, true)
-    # todo, get peers
-    {:reply, state, state}
+
+    peer_list = get_peers(self(), state.info_hash)
+    {:reply, peer_list, state}
   end
 
   def handle_call({:announce, %{"event" => "stopped"}}, _from, state) do
@@ -57,12 +69,41 @@ defmodule Tracker.File.Peer.Announce do
       Statistics.an_incomplete_peer_stopped(state.info_hash)
     end
 
-    {:reply, state, state}
+    {:reply, [], state}
   end
 
   def handle_call({:announce, announce}, _from, state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
-    # todo, get peers
-    {:reply, state, state}
+
+    peer_list = get_peers(self(), state.info_hash)
+    {:reply, peer_list, state}
+  end
+
+  defp get_peers(pid, info_hash, opts \\ [numwant: 35]) do
+    key = {:p, :l, info_hash}
+    match = {key, :'$0', :'$1'}
+    guard = [{:'=/=', :'$0', pid}] # filter out the calling peer
+    format = [:'$1']
+
+    case :gproc.select({:l, :p}, [{match, guard, format}], opts[:numwant]) do
+      {peers, _} ->
+        cond do
+          # opts.compact == true ->
+          #   peers
+          #   |> Enum.filter_map(&(&1[:compact] != nil), fn %{compact: address} -> address end)
+          #   |> to_string
+
+          # opts.no_peer_id == true ->
+          #   peers
+          #   |> Enum.map(fn %{ip: ip, port: port} -> %{ip: ip, port: port} end)
+
+          :otherwise ->
+            peers
+            |> Enum.map(&(Map.delete(&1, :compact)))
+        end
+
+      :"$end_of_table" ->
+        []
+    end
   end
 end

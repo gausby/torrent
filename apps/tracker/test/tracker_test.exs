@@ -79,14 +79,16 @@ defmodule TrackerTest do
   end
 
   # peer joining -------------------------------------------------------
-
   test "should update incomplete statistics when a new peer joins" do
     info_hash = "12345678901234567890"
     Tracker.add(info_hash)
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
     {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
     announce_data =
-      %{"event" => "started"}
+      %{"event" => "started",
+        "ip" => {127, 0, 0, 1},
+        "port" => 12345,
+        "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
     expected = %Tracker.File.Statistics{downloaded: 0, incomplete: 1, complete: 0}
     assert expected == Tracker.File.Statistics.get(info_hash)
@@ -100,11 +102,20 @@ defmodule TrackerTest do
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
     {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
     announce_data =
-      %{"event" => "started", "left" => 1, "downloaded" => 1, "uploaded" => 1}
+      %{"event" => "started",
+        "left" => 1,
+        "downloaded" => 1,
+        "uploaded" => 1,
+        "ip" => {127, 0, 0, 1},
+        "port" => 12345,
+        "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
 
     announce_data =
-      %{"event" => "completed", "left" => 1, "downloaded" => 1, "uploaded" => 1}
+      %{"event" => "completed", "left" => 1, "downloaded" => 1, "uploaded" => 1,
+        "ip" => {127, 0, 0, 1},
+        "port" => 12345,
+        "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
 
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
     expected = %Tracker.File.Statistics{incomplete: 0, complete: 1, downloaded: 1}
@@ -118,11 +129,17 @@ defmodule TrackerTest do
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
     {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
     announce_data =
-      %{"event" => "started"}
+      %{"event" => "started",
+        "ip" => {127, 0, 0, 1},
+        "port" => 12345,
+        "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
 
     announce_data =
-      %{"event" => "stopped"}
+      %{"event" => "stopped",
+        "ip" => {127, 0, 0, 1},
+        "port" => 12345,
+        "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
 
     expected = %Tracker.File.Statistics{incomplete: 0, complete: 0, downloaded: 0}
@@ -134,10 +151,13 @@ defmodule TrackerTest do
     Tracker.add(info_hash)
     :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
     {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
-
-    Tracker.File.Peer.Announce.announce(info_hash, trackerid, %{"event" => "started"})
-    Tracker.File.Peer.Announce.announce(info_hash, trackerid, %{"event" => "completed"})
-    Tracker.File.Peer.Announce.announce(info_hash, trackerid, %{"event" => "stopped"})
+    announce_data = %{"ip" => {127, 0, 0, 1},
+             "port" => 12345,
+             "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
+    for event <- ["started", "completed", "stopped"] do
+      peer_data = Map.merge(announce_data, %{"event" => event})
+      Tracker.File.Peer.Announce.announce(info_hash, trackerid, peer_data)
+    end
 
     expected = %Tracker.File.Statistics{incomplete: 0, complete: 0, downloaded: 1}
     assert expected == Tracker.File.Statistics.get(info_hash)
@@ -162,4 +182,41 @@ defmodule TrackerTest do
     assert Tracker.File.Peer.State.get(info_hash, trackerid) == expected
   end
 
+  test "announce should be send back an empty list of peers if no other peers are present" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+
+    # add two peers
+    {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    data =
+      %{"peer_id" => "xxxxxxxxxxxxxxxxxxxx",
+        "event" => "started",
+        "ip" => {127, 0, 0, 1}, "port" => 12345}
+    announce = Tracker.File.Peer.Announce.announce(info_hash, trackerid, data)
+
+    assert announce == []
+  end
+
+  test "announce should be send back a list of peers" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+
+    # add two peers
+    data =
+      %{"peer_id" => "xxxxxxxxxxxxxxxxxxxx",
+        "event" => "started",
+        "ip" => {127, 0, 0, 1}, "port" => 12345}
+    for port <- [12346, 12347] do
+      {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+      peer_data = Map.merge(data, %{"port" => port})
+      Tracker.File.Peer.Announce.announce(info_hash, trackerid, peer_data)
+    end
+    {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce = Tracker.File.Peer.Announce.announce(info_hash, trackerid, data)
+
+    ports = announce |> Enum.map(&(&1[:port])) |> Enum.sort
+    assert ports == [12346, 12347]
+  end
 end
