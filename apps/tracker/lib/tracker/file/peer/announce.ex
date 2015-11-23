@@ -103,8 +103,8 @@ defmodule Tracker.File.Peer.Announce do
   defp update_announce_status(state, _),
     do: state
 
-  defp update_announce_peer_id(%__MODULE__{peer_id: old} = state, %{"peer_id" => new}) when old != new,
-    do: Map.put(state, :peer_id, new)
+  defp update_announce_peer_id(%__MODULE__{peer_id: nil} = state, %{"peer_id" => peer_id}),
+    do: Map.put(state, :peer_id, peer_id)
   defp update_announce_peer_id(state, _),
     do: state
 
