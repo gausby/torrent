@@ -141,9 +141,9 @@ defmodule Tracker.File.Peer.Announce do
           #   |> Enum.filter_map(&(&1[:compact] != nil), fn %{compact: address} -> address end)
           #   |> to_string
 
-          # opts.no_peer_id == true ->
-          #   peers
-          #   |> Enum.map(fn %{ip: ip, port: port} -> %{ip: ip, port: port} end)
+          announce["no_peer_id"] == 1 ->
+            peers
+            |> Enum.map(fn %{ip: ip, port: port} -> %{ip: ip, port: port} end)
 
           :otherwise ->
             peers

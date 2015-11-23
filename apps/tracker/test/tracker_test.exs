@@ -246,4 +246,26 @@ defmodule TrackerTest do
     result = length Tracker.File.Peer.Announce.announce(info_hash, trackerid, Map.delete(data, "event"))
     assert result == 1
   end
+
+  test "announce should be send back a list of peers without peer ids if no_peer_ids are specified" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+
+    # add two peers
+    data =
+      %{"peer_id" => "xxxxxxxxxxxxxxxxxxxx",
+        "event" => "started",
+        "ip" => {127, 0, 0, 1}, "port" => 12345}
+    for port <- [12346, 12347] do
+      {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+      peer_data = Map.merge(data, %{"port" => port})
+      Tracker.File.Peer.Announce.announce(info_hash, trackerid, peer_data)
+    end
+    {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce = Tracker.File.Peer.Announce.announce(info_hash, trackerid, Map.put(data, "no_peer_id", 1))
+
+    refute Enum.any?(announce, &(Map.has_key?(&1, :peer_id)))
+  end
+
 end
