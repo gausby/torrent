@@ -31,7 +31,7 @@ defmodule Tracker.File.Peer.Announce do
         ip: info[:ip],
         port: info[:port]}
     :gproc.reg(@complete?, false)
-    :gproc.reg({:p, :l, state.info_hash}, nil)
+    :gproc.reg({:p, :l, {__MODULE__, state.info_hash}}, nil)
     {:ok, state}
   end
 
@@ -86,13 +86,13 @@ defmodule Tracker.File.Peer.Announce do
     data = %{ip: formatted_ip, peer_id: announce["peer_id"], port: announce["port"]}
     completed? = if :gproc.get_value(@complete?), do: :complete, else: :incomplete
 
-    :gproc.set_value({:p, :l, state.info_hash}, {completed?, data})
+    :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {completed?, data})
   end
 
   defp get_peers(pid, info_hash, opts \\ [numwant: 35]) do
     interest = if :gproc.get_value(@complete?), do: :incomplete, else: :'_'
 
-    key = {:p, :l, info_hash}
+    key = {:p, :l, {__MODULE__, info_hash}}
     match = {key, :'$0', {interest, :'$1'}}
     guard = [{:'=/=', :'$0', pid}] # filter out the calling peer
     format = [:'$1']
