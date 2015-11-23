@@ -98,11 +98,13 @@ defmodule Tracker.File.Peer.Announce do
   defp update_announce_port(state, _),
     do: state
 
+  # after the status has been set to complete it can never go back
   defp update_announce_status(%__MODULE__{status: :incomplete} = state, %{"event" => "completed"}),
     do: Map.put(state, :status, :complete)
   defp update_announce_status(state, _),
     do: state
 
+  # peer_id should only be set once
   defp update_announce_peer_id(%__MODULE__{peer_id: nil} = state, %{"peer_id" => peer_id}),
     do: Map.put(state, :peer_id, peer_id)
   defp update_announce_peer_id(state, _),
