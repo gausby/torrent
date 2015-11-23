@@ -40,7 +40,7 @@ defmodule Tracker.File.Peer.Announce do
     state = update_announce_state(state, announce)
 
     Statistics.a_peer_started(state.info_hash)
-    set_peer_meta_data(state, announce)
+    set_peer_meta_data(state)
 
     peer_list = get_peers(self(), state, announce)
     {:reply, peer_list, state}
@@ -52,7 +52,7 @@ defmodule Tracker.File.Peer.Announce do
 
     Statistics.a_peer_completed(state.info_hash)
 
-    set_peer_meta_data(state, announce)
+    set_peer_meta_data(state)
 
     peer_list = get_peers(self(), state, announce)
     {:reply, peer_list, state}
@@ -108,9 +108,9 @@ defmodule Tracker.File.Peer.Announce do
   defp update_announce_peer_id(state, _),
     do: state
 
-  defp set_peer_meta_data(state, announce) do
+  defp set_peer_meta_data(state) do
     formatted_ip =
-      case announce["ip"] do
+      case state.ip do
         {a, b, c, d} ->
           "#{a}.#{b}.#{c}.#{d}"
 
@@ -118,7 +118,7 @@ defmodule Tracker.File.Peer.Announce do
           ip
       end
 
-    data = %{ip: formatted_ip, peer_id: announce["peer_id"], port: announce["port"]}
+    data = %{ip: formatted_ip, peer_id: state.peer_id, port: state.port}
 
     :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data})
   end
