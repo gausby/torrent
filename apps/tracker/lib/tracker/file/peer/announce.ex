@@ -31,6 +31,7 @@ defmodule Tracker.File.Peer.Announce do
         ip: info[:ip],
         port: info[:port]}
     :gproc.reg(@complete?, false)
+    :gproc.reg({:p, :l, state.info_hash}, nil)
     {:ok, state}
   end
 
@@ -38,16 +39,7 @@ defmodule Tracker.File.Peer.Announce do
   def handle_call({:announce, %{"event" => "started"} = announce}, _from, state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     Statistics.a_peer_started(state.info_hash)
-    formatted_ip =
-      case announce["ip"] do
-        {a, b, c, d} ->
-          "#{a}.#{b}.#{c}.#{d}"
-
-        ip when is_binary(ip) ->
-          ip
-      end
-    data = %{ip: formatted_ip, peer_id: announce["peer_id"], port: announce["port"]}
-    :gproc.reg({:p, :l, state.info_hash}, data)
+    set_peer_meta_data(state, announce)
 
     peer_list = get_peers(self(), state.info_hash)
     {:reply, peer_list, state}
@@ -57,6 +49,8 @@ defmodule Tracker.File.Peer.Announce do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     Statistics.a_peer_completed(state.info_hash)
     :gproc.set_value(@complete?, true)
+
+    set_peer_meta_data(state, announce)
 
     peer_list = get_peers(self(), state.info_hash)
     {:reply, peer_list, state}
@@ -79,9 +73,27 @@ defmodule Tracker.File.Peer.Announce do
     {:reply, peer_list, state}
   end
 
+  defp set_peer_meta_data(state, announce) do
+    formatted_ip =
+      case announce["ip"] do
+        {a, b, c, d} ->
+          "#{a}.#{b}.#{c}.#{d}"
+
+        ip when is_binary(ip) ->
+          ip
+      end
+
+    data = %{ip: formatted_ip, peer_id: announce["peer_id"], port: announce["port"]}
+    completed? = if :gproc.get_value(@complete?), do: :complete, else: :incomplete
+
+    :gproc.set_value({:p, :l, state.info_hash}, {completed?, data})
+  end
+
   defp get_peers(pid, info_hash, opts \\ [numwant: 35]) do
+    interest = if :gproc.get_value(@complete?), do: :incomplete, else: :'_'
+
     key = {:p, :l, info_hash}
-    match = {key, :'$0', :'$1'}
+    match = {key, :'$0', {interest, :'$1'}}
     guard = [{:'=/=', :'$0', pid}] # filter out the calling peer
     format = [:'$1']
 

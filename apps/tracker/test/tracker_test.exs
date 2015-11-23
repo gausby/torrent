@@ -219,4 +219,31 @@ defmodule TrackerTest do
     ports = announce |> Enum.map(&(&1[:port])) |> Enum.sort
     assert ports == [12346, 12347]
   end
+
+  test "a completed peer should only get incomplete peers back when announcing" do
+    info_hash = "xxxxxxxxxxxxxxxxxxxx"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+
+    data =
+      %{"peer_id" => "xxxxxxxxxxxxxxxxxxxx",
+        "event" => "started",
+        "ip" => {127, 0, 0, 1}, "port" => 12345}
+    peers = for port <- [12346, 12347] do
+      {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+      peer_data = Map.merge(data, %{"port" => port})
+      Tracker.File.Peer.Announce.announce(info_hash, trackerid, peer_data)
+      trackerid
+    end
+
+    # complete one of the peers, there should only be one incomplete peer left
+    Tracker.File.Peer.Announce.announce(info_hash, hd(peers), Map.merge(data, %{"event" => "completed"}))
+    # start a new peer, complete it and ask for peers
+    {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, data)
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, Map.merge(data, %{"event" => "completed"}))
+
+    result = length Tracker.File.Peer.Announce.announce(info_hash, trackerid, Map.delete(data, "event"))
+    assert result == 1
+  end
 end
