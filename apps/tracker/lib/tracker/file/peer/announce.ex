@@ -118,9 +118,42 @@ defmodule Tracker.File.Peer.Announce do
           ip
       end
 
+    # can only make compact versions of ipv4 addresses
+    compact = case state.ip do
+      {a, b, c, d} ->
+        <<a, b, c, d, state.port::size(16)>>
+
+      _ ->
+        nil
+    end
+
     data = %{ip: formatted_ip, peer_id: state.peer_id, port: state.port}
 
-    :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data})
+    :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data, compact})
+  end
+
+  defp get_peers(pid, state, %{"compact" => 1} = announce) do
+    # completed peers should get a list of incomplete back (no seeders for seeders)
+    interest = if state.status, do: :incomplete, else: :'_'
+
+    key = {:p, :l, {__MODULE__, state.info_hash}}
+    match = {key, :'$0', {interest, :'_', :'$1'}}
+    # Filter out the calling peer and peers that does not support compact
+    # by checking here we should uphold the numwant number
+    guard = [{:'andalso', {:'=/=', :'$0', pid}, {:'=/=', :'$1', nil}}]
+    format = [:'$1']
+
+    numwant = announce["numwant"] || 35
+
+    case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
+      {peers, _} ->
+        peers
+        |> Enum.filter(&(&1))
+        |> to_string
+
+      :"$end_of_table" ->
+        []
+    end
   end
 
   defp get_peers(pid, state, announce) do
@@ -128,7 +161,7 @@ defmodule Tracker.File.Peer.Announce do
     interest = if state.status, do: :incomplete, else: :'_'
 
     key = {:p, :l, {__MODULE__, state.info_hash}}
-    match = {key, :'$0', {interest, :'$1'}}
+    match = {key, :'$0', {interest, :'$1', :'_'}}
     guard = [{:'=/=', :'$0', pid}] # filter out the calling peer
     format = [:'$1']
 
@@ -136,11 +169,6 @@ defmodule Tracker.File.Peer.Announce do
     case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
       {peers, _} ->
         cond do
-          # opts.compact == true ->
-          #   peers
-          #   |> Enum.filter_map(&(&1[:compact] != nil), fn %{compact: address} -> address end)
-          #   |> to_string
-
           announce["no_peer_id"] == 1 ->
             peers
             |> Enum.map(fn %{ip: ip, port: port} -> %{ip: ip, port: port} end)

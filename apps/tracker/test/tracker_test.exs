@@ -268,4 +268,24 @@ defmodule TrackerTest do
     refute Enum.any?(announce, &(Map.has_key?(&1, :peer_id)))
   end
 
+  test "announce should be send back a list of peers in compact notation if specified" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+
+    # add two peers
+    data =
+      %{"peer_id" => "xxxxxxxxxxxxxxxxxxxx",
+        "event" => "started",
+        "ip" => {127, 0, 0, 1}, "port" => 12345}
+    for port <- [12346, 12347] do
+      {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+      peer_data = Map.merge(data, %{"port" => port})
+      Tracker.File.Peer.Announce.announce(info_hash, trackerid, peer_data)
+    end
+    {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce = Tracker.File.Peer.Announce.announce(info_hash, trackerid, Map.put(data, "compact", 1))
+
+    assert announce == <<127, 0, 0, 1, 48, 58, 127, 0, 0, 1, 48, 59>>
+  end
 end
