@@ -4,7 +4,14 @@ defmodule Tracker.File.Peer.Announce do
   alias Tracker.File.Statistics
   alias Tracker.File.Peer.State
 
-  defstruct info_hash: nil, trackerid: nil, peer_id: nil, ip: nil, port: nil
+  defstruct(
+    info_hash: nil,
+    trackerid: nil,
+    peer_id: nil,
+    ip: nil,
+    port: nil,
+    status: :incomplete
+  )
 
   @complete? {:p, :l, {__MODULE__, :complete?}}
 
@@ -23,13 +30,8 @@ defmodule Tracker.File.Peer.Announce do
   end
 
   # Server callbacks
-  def init(info) do
-    state =
-      %__MODULE__{
-        info_hash: info[:info_hash],
-        trackerid: info[:trackerid],
-        ip: info[:ip],
-        port: info[:port]}
+  def init([info_hash: info_hash, trackerid: trackerid]) do
+    state = %__MODULE__{info_hash: info_hash, trackerid: trackerid}
     :gproc.reg(@complete?, false)
     :gproc.reg({:p, :l, {__MODULE__, state.info_hash}}, nil)
     {:ok, state}
@@ -38,6 +40,8 @@ defmodule Tracker.File.Peer.Announce do
   # handle announce
   def handle_call({:announce, %{"event" => "started"} = announce}, _from, state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
+    state = update_announce_state(state, announce)
+
     Statistics.a_peer_started(state.info_hash)
     set_peer_meta_data(state, announce)
 
@@ -45,8 +49,10 @@ defmodule Tracker.File.Peer.Announce do
     {:reply, peer_list, state}
   end
 
-  def handle_call({:announce, %{"event" => "completed"} = announce}, _from, state) do
+  def handle_call({:announce, %{"event" => "completed"} = announce}, _from, %{status: :incomplete} = state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
+    state = update_announce_state(state, announce)
+
     Statistics.a_peer_completed(state.info_hash)
     :gproc.set_value(@complete?, true)
 
@@ -56,22 +62,55 @@ defmodule Tracker.File.Peer.Announce do
     {:reply, peer_list, state}
   end
 
-  def handle_call({:announce, %{"event" => "stopped"}}, _from, state) do
-    if :gproc.get_value(@complete?) do
-      Statistics.a_completed_peer_stopped(state.info_hash)
-    else
-      Statistics.an_incomplete_peer_stopped(state.info_hash)
-    end
-
+  def handle_call({:announce, %{"event" => "stopped"}}, _from, %{status: :complete} = state) do
+    Statistics.a_completed_peer_stopped(state.info_hash)
+    {:reply, [], state}
+  end
+  def handle_call({:announce, %{"event" => "stopped"}}, _from, %{status: :incomplete} = state) do
+    Statistics.an_incomplete_peer_stopped(state.info_hash)
     {:reply, [], state}
   end
 
   def handle_call({:announce, announce}, _from, state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
+    state = update_announce_state(state, announce)
 
     peer_list = get_peers(self(), state.info_hash)
     {:reply, peer_list, state}
   end
+
+  #=HELPERS=============================================================
+  defp update_announce_state(state, announce) do
+    # info_hash + trackerid + peer_id should newer change
+    # key should be used and match if ip/port changes
+    state
+    |> update_announce_ip(announce)
+    |> update_announce_port(announce)
+    |> update_announce_peer_id(announce)
+    |> update_announce_status(announce)
+  end
+
+  # todo: update ip (if announce.key = state.key)
+  defp update_announce_ip(%__MODULE__{ip: old} = state, %{"ip" => new}) when old != new,
+    do: Map.put(state, :ip, new)
+  defp update_announce_ip(state, _),
+    do: state
+
+  # todo: update port (if announce.key = state.key)
+  defp update_announce_port(%__MODULE__{ip: old} = state, %{"port" => new}) when old != new,
+    do: Map.put(state, :port, new)
+  defp update_announce_port(state, _),
+    do: state
+
+  defp update_announce_status(%__MODULE__{status: :incomplete} = state, %{"event" => "completed"}),
+    do: Map.put(state, :status, :complete)
+  defp update_announce_status(state, _),
+    do: state
+
+  defp update_announce_peer_id(%__MODULE__{peer_id: old} = state, %{"peer_id" => new}) when old != new,
+    do: Map.put(state, :peer_id, new)
+  defp update_announce_peer_id(state, _),
+    do: state
 
   defp set_peer_meta_data(state, announce) do
     formatted_ip =
