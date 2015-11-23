@@ -13,8 +13,6 @@ defmodule Tracker.File.Peer.Announce do
     status: :incomplete
   )
 
-  @complete? {:p, :l, {__MODULE__, :complete?}}
-
   # Client API
   def start_link(info) do
     GenServer.start_link(__MODULE__, info, name: via_name(info[:info_hash], info[:trackerid]))
@@ -32,7 +30,6 @@ defmodule Tracker.File.Peer.Announce do
   # Server callbacks
   def init([info_hash: info_hash, trackerid: trackerid]) do
     state = %__MODULE__{info_hash: info_hash, trackerid: trackerid}
-    :gproc.reg(@complete?, false)
     :gproc.reg({:p, :l, {__MODULE__, state.info_hash}}, nil)
     {:ok, state}
   end
@@ -45,7 +42,7 @@ defmodule Tracker.File.Peer.Announce do
     Statistics.a_peer_started(state.info_hash)
     set_peer_meta_data(state, announce)
 
-    peer_list = get_peers(self(), state.info_hash)
+    peer_list = get_peers(self(), state, announce)
     {:reply, peer_list, state}
   end
 
@@ -54,11 +51,10 @@ defmodule Tracker.File.Peer.Announce do
     state = update_announce_state(state, announce)
 
     Statistics.a_peer_completed(state.info_hash)
-    :gproc.set_value(@complete?, true)
 
     set_peer_meta_data(state, announce)
 
-    peer_list = get_peers(self(), state.info_hash)
+    peer_list = get_peers(self(), state, announce)
     {:reply, peer_list, state}
   end
 
@@ -75,7 +71,7 @@ defmodule Tracker.File.Peer.Announce do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     state = update_announce_state(state, announce)
 
-    peer_list = get_peers(self(), state.info_hash)
+    peer_list = get_peers(self(), state, announce)
     {:reply, peer_list, state}
   end
 
@@ -123,20 +119,21 @@ defmodule Tracker.File.Peer.Announce do
       end
 
     data = %{ip: formatted_ip, peer_id: announce["peer_id"], port: announce["port"]}
-    completed? = if :gproc.get_value(@complete?), do: :complete, else: :incomplete
 
-    :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {completed?, data})
+    :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data})
   end
 
-  defp get_peers(pid, info_hash, opts \\ [numwant: 35]) do
-    interest = if :gproc.get_value(@complete?), do: :incomplete, else: :'_'
+  defp get_peers(pid, state, announce) do
+    # completed peers should get a list of incomplete back (no seeders for seeders)
+    interest = if state.status, do: :incomplete, else: :'_'
 
-    key = {:p, :l, {__MODULE__, info_hash}}
+    key = {:p, :l, {__MODULE__, state.info_hash}}
     match = {key, :'$0', {interest, :'$1'}}
     guard = [{:'=/=', :'$0', pid}] # filter out the calling peer
     format = [:'$1']
 
-    case :gproc.select({:l, :p}, [{match, guard, format}], opts[:numwant]) do
+    numwant = announce["numwant"] || 35
+    case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
       {peers, _} ->
         cond do
           # opts.compact == true ->
