@@ -143,6 +143,9 @@ defmodule Tracker.File.Peer.Announce do
     :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data, compact})
   end
 
+  defp get_peers(pid, state, %{"numwant" => 0} = announce) do
+    if announce["compact"] == 1, do: "", else: []
+  end
   defp get_peers(pid, state, %{"compact" => 1} = announce) do
     # completed peers should get a list of incomplete back (no seeders for seeders)
     interest = if state.status, do: :incomplete, else: :'_'
@@ -166,7 +169,6 @@ defmodule Tracker.File.Peer.Announce do
         []
     end
   end
-
   defp get_peers(pid, state, announce) do
     # completed peers should get a list of incomplete back (no seeders for seeders)
     interest = if state.status, do: :incomplete, else: :'_'

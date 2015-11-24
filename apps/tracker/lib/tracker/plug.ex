@@ -3,6 +3,9 @@ defmodule Tracker.Plug do
   import Plug.Conn
   import Tracker.Utils, only: [to_scrape_path: 1]
 
+  alias Tracker.File.Peer.Announce
+  alias Tracker.File.Statistics
+
   def init(opts) do
     # The scrape path will be found relative to the announce path.
     # This will fail if the annonuce path is invalid
@@ -57,13 +60,13 @@ defmodule Tracker.Plug do
         "peer_id" => <<peer_id::binary-size(20)>>, "port" => port,
          "uploaded" => uploaded, "downloaded" => downloaded, "left" => left} ->
         announce = %{
-          event: params["event"] || nil,
-          info_hash: info_hash, peer_id: peer_id,
-          ip: params["ip"] || conn.remote_ip, port: port,
-          uploaded: uploaded, downloaded: downloaded, left: left,
-          trackerid: params["trackerid"] || nil,
-          numwant: params["numwant"] || 35,
-          compact: params["compact"] == 1
+          "event" => params["event"] || nil,
+          "info_hash" => info_hash, "peer_id" => peer_id,
+          "ip" => params["ip"] || conn.remote_ip, "port" => port,
+          "uploaded" => uploaded, "downloaded" => downloaded, "left" => left,
+          "trackerid" => params["trackerid"] || nil,
+          "numwant" => params["numwant"] || 35,
+          "compact" => params["compact"]
         }
         get_pid(conn, announce)
 
@@ -73,8 +76,8 @@ defmodule Tracker.Plug do
   end
 
   # find the process needed to complete the request
-  defp get_pid(conn, %{event: "started", info_hash: info_hash} = announce) do
-    case :gproc.where({:n, :l, {Tracker.Torrent, info_hash}}) do
+  defp get_pid(conn, %{"event" => "started", "info_hash" => info_hash} = announce) do
+    case :gproc.where({:n, :l, {Tracker.File, info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_info_hash_not_tracked_by_server)
 
@@ -82,7 +85,7 @@ defmodule Tracker.Plug do
         handle_announce(conn, pid, announce)
     end
   end
-  defp get_pid(conn, %{trackerid: trackerid, info_hash: info_hash} = announce) do
+  defp get_pid(conn, %{"trackerid" => trackerid, "info_hash" => info_hash} = announce) do
     case :gproc.where({:n, :l, {Tracker.Peer, trackerid, info_hash}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
@@ -92,17 +95,17 @@ defmodule Tracker.Plug do
     end
   end
 
-  defp handle_announce(conn, pid, %{event: "started", trackerid: nil} = announce) do
-    case Tracker.Torrent.add_peer(pid, announce) do
-      {:ok, peer_pid, trackerid} ->
+  defp handle_announce(conn, _pid, %{"event" => "started", "info_hash" => info_hash, "trackerid" => nil} = announce) do
+    case Tracker.File.Peers.add(info_hash) do
+      {:ok, _peer_pid, trackerid} ->
         # send numwant (or 35) peers back
-        {_, statistics} = get_statistics(announce.info_hash)
-
+        statistics = Statistics.get(info_hash)
+        peer_list = Announce.announce(info_hash, trackerid, announce)
         response =
-          %{peers: Tracker.Peer.get_peers(peer_pid, announce),
+          %{peers: peer_list,
             trackerid: trackerid,
-            complete: statistics[:complete],
-            incomplete: statistics[:incomplete],
+            complete: statistics.complete,
+            incomplete: statistics.incomplete,
             interval: @default_interval}
         send_resp(conn, 201, Bencode.encode(response))
 

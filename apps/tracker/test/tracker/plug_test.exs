@@ -3,7 +3,7 @@ defmodule Tracker.PlugTest do
   use Plug.Test
   # import TrackerTest.Helpers
   doctest Tracker.Plug
-  # alias TrackerTest.Request
+  alias TrackerTest.Request
 
   defmodule TestTracker do
     use Plug.Router
@@ -26,39 +26,40 @@ defmodule Tracker.PlugTest do
 
   setup do
     # stop all tracked torrents
-    match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
-    for torrent <- :gproc.select([{match, [], [:'$1']}]) do
-      Tracker.Torrent.stop(torrent)
-    end
+    # match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
+    # for torrent <- :gproc.select([{match, [], [:'$1']}]) do
+    #   Tracker.Torrent.stop(torrent)
+    # end
 
-    # kill loose peers, if some test should leave some behind
-    match = {{:n, :l, {Tracker.Peer, :'_', :'_'}}, :'$1', :'_'}
-    for peer <- :gproc.select([{match, [], [:'$1']}]) do
-      Tracker.Peer.stop(peer)
-    end
+    # # kill loose peers, if some test should leave some behind
+    # match = {{:n, :l, {Tracker.Peer, :'_', :'_'}}, :'$1', :'_'}
+    # for peer <- :gproc.select([{match, [], [:'$1']}]) do
+    #   Tracker.Peer.stop(peer)
+    # end
     :ok
   end
 
   # Announce ===========================================================
-  # test "announce should return an empty list when asking for zero peers" do
-  #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       numwant: 0,
-  #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"
-  #     }
-  #     |> Map.from_struct
-  #     |> Map.delete(:trackerid)
-  #     |> Map.delete(:ip)
+  test "announce should return an empty list when asking for zero peers" do
+    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
 
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        info_hash: "aaaaaaaaaaaaaaaaaaaa"
+      }
+      |> Map.from_struct
+      |> Map.delete(:trackerid)
+      |> Map.delete(:ip)
 
-  #   refute response["failure_reason"]
-  #   assert response["peers"] == []
-  # end
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+
+    refute response["failure_reason"]
+    assert response["peers"] == []
+  end
 
   # test "announce should return an interval" do
   #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
