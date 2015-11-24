@@ -10,7 +10,8 @@ defmodule Tracker.File.Peer.Announce do
     peer_id: nil,
     ip: nil,
     port: nil,
-    status: :incomplete
+    status: :incomplete,
+    key: nil
   )
 
   # Client API
@@ -77,23 +78,31 @@ defmodule Tracker.File.Peer.Announce do
 
   #=HELPERS=============================================================
   defp update_announce_state(state, announce) do
-    # info_hash + trackerid + peer_id should newer change
-    # key should be used and match if ip/port changes
     state
+    |> update_announce_key(announce)
     |> update_announce_ip(announce)
     |> update_announce_port(announce)
     |> update_announce_peer_id(announce)
     |> update_announce_status(announce)
   end
 
-  # todo: update ip (if announce.key = state.key)
-  defp update_announce_ip(%__MODULE__{ip: old} = state, %{"ip" => new}) when old != new,
+  defp update_announce_key(state, %{"event" => "started", "key" => key}),
+    do: Map.put(state, :key, key)
+  defp update_announce_key(state, _),
+    do: state
+
+  defp update_announce_ip(state, %{"event" => "started", "ip" => ip}),
+    do: Map.put(state, :ip, ip)
+  defp update_announce_ip(%__MODULE__{ip: old, key: key} = state, %{"ip" => new, "key" => key}) when old != new,
+    # only update ip if key is given and matches the one set at the beginning
     do: Map.put(state, :ip, new)
   defp update_announce_ip(state, _),
     do: state
 
-  # todo: update port (if announce.key = state.key)
-  defp update_announce_port(%__MODULE__{ip: old} = state, %{"port" => new}) when old != new,
+  defp update_announce_port(state, %{"event" => "started", "port" => port}),
+    do: Map.put(state, :port, port)
+  defp update_announce_port(%__MODULE__{ip: old, key: key} = state, %{"port" => new, "key" => key}) when old != new,
+    # only update port if key is given and matches the one set at the beginning
     do: Map.put(state, :port, new)
   defp update_announce_port(state, _),
     do: state

@@ -288,4 +288,35 @@ defmodule TrackerTest do
 
     assert announce == <<127, 0, 0, 1, 48, 58, 127, 0, 0, 1, 48, 59>>
   end
+
+  test "a peer should be able to switch ip and port if key is provided during announce" do
+    alias Tracker.File.Peer.Announce
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+
+    # create two peers and change the ip and port of the one and check with the other
+    data = %{"peer_id" => "xxxxxxxxxxxxxxxxxxxx", "ip" => {127, 0, 0, 1}}
+    [peer1, peer2] = for port <- [12345, 12346] do
+      {:ok, _, trackerid} = Tracker.File.Peers.add(info_hash)
+      %{ip: data["ip"], port: port, trackerid: trackerid}
+    end
+
+    start_data = Map.put(data, "event", "started")
+    Announce.announce(info_hash, peer1.trackerid, Map.merge(start_data,
+                                                            %{"key" => "foo",
+                                                              "port" => peer1.port}))
+    result = Announce.announce(info_hash, peer2.trackerid, Map.merge(start_data,
+                                                                     %{"port" => peer2.port,
+                                                                       "compact" => 1}))
+    assert result == <<127, 0, 0, 1, 48, 57>>
+
+    Announce.announce(info_hash, peer1.trackerid, Map.merge(start_data,
+      %{"key" => "foo", "port" => peer1.port + 1, "ip" => {127, 0, 0, 2}}))
+    result = Announce.announce(info_hash, peer2.trackerid, Map.merge(start_data,
+                                                                     %{"port" => peer2.port,
+                                                                       "compact" => 1}))
+    assert result == <<127, 0, 0, 2, 48, 58>>
+  end
+
 end
