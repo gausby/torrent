@@ -113,7 +113,7 @@ defmodule Tracker.Plug do
         send_resp(conn, 500, @error_failure_registering_peer)
     end
   end
-  defp handle_announce(conn, _pid, %{event: "started"}) do
+  defp handle_announce(conn, _pid, %{"event" => "started"}) do
     send_resp(conn, 400, @error_trackerid_must_not_be_set_on_first_announce)
   end
 

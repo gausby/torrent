@@ -19,23 +19,15 @@ defmodule Tracker.PlugTest do
   setup_all do
     :ok = Logger.remove_backend(:console)
     on_exit(fn -> Logger.add_backend(:console, flush: true) end)
-
-    Tracker.start(:normal, [])
     :ok
   end
 
   setup do
-    # stop all tracked torrents
-    # match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
-    # for torrent <- :gproc.select([{match, [], [:'$1']}]) do
-    #   Tracker.Torrent.stop(torrent)
-    # end
-
-    # # kill loose peers, if some test should leave some behind
-    # match = {{:n, :l, {Tracker.Peer, :'_', :'_'}}, :'$1', :'_'}
-    # for peer <- :gproc.select([{match, [], [:'$1']}]) do
-    #   Tracker.Peer.stop(peer)
-    # end
+    {:ok, pid} = Tracker.start(:normal, [])
+    on_exit(fn ->
+      if (Process.alive?(pid)), do: Process.exit(pid, :normal)
+      :timer.sleep 10
+    end)
     :ok
   end
 
@@ -61,44 +53,44 @@ defmodule Tracker.PlugTest do
     assert response["peers"] == []
   end
 
-  # test "announce should return an interval" do
-  #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       numwant: 0,
-  #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"
-  #     }
-  #     |> Map.from_struct
-  #     |> Map.delete(:trackerid)
-  #     |> Map.delete(:ip)
+  test "announce should return an interval" do
+    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        info_hash: "aaaaaaaaaaaaaaaaaaaa"
+      }
+      |> Map.from_struct
+      |> Map.delete(:trackerid)
+      |> Map.delete(:ip)
 
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
 
-  #   refute response["failure_reason"]
-  #   assert is_number(response["interval"])
-  # end
+    refute response["failure_reason"]
+    assert is_number(response["interval"])
+  end
 
-  # test "announce should return an error if event is started and a trackerid is set" do
-  #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       trackerid: "hello",
-  #       numwant: 0,
-  #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"
-  #     }
-  #     |> Map.from_struct
+  test "announce should return an error if event is started and a trackerid is set" do
+    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    request =
+      %Request{
+        event: "started",
+        trackerid: "hello",
+        numwant: 0,
+        port: 31337,
+        info_hash: "aaaaaaaaaaaaaaaaaaaa"
+      }
+      |> Map.from_struct
 
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
 
-  #   assert response["failure_reason"]
-  #   refute response["peers"] == []
-  # end
+    assert response["failure_reason"]
+    refute response["peers"] == []
+  end
 
   # test "announce should be able to stop tracking a given peer" do
   #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
