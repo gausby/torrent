@@ -143,7 +143,7 @@ defmodule Tracker.File.Peer.Announce do
     :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data, compact})
   end
 
-  defp get_peers(pid, state, %{"numwant" => 0} = announce) do
+  defp get_peers(_pid, _state, %{"numwant" => 0} = announce) do
     if announce["compact"] == 1, do: "", else: []
   end
   defp get_peers(pid, state, %{"compact" => 1} = announce) do
