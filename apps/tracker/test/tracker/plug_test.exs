@@ -3,7 +3,9 @@ defmodule Tracker.PlugTest do
   use Plug.Test
   # import TrackerTest.Helpers
   doctest Tracker.Plug
+
   alias TrackerTest.Request
+  alias Tracker.File.Statistics
 
   defmodule TestTracker do
     use Plug.Router
@@ -93,13 +95,14 @@ defmodule Tracker.PlugTest do
   end
 
   # test "announce should be able to stop tracking a given peer" do
-  #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
+  #   info_hash = "aaaaaaaaaaaaaaaaaaaa"
+  #   Tracker.add(info_hash)
   #   request =
   #     %Request{
   #       event: "started",
   #       numwant: 0,
   #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"}
+  #       info_hash: info_hash}
   #     |> Map.from_struct
   #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
   #   response = Bencode.decode(conn.resp_body)
@@ -107,7 +110,7 @@ defmodule Tracker.PlugTest do
   #   refute response["failure_reason"]
   #   assert response["trackerid"]
   #   # should have one peer by now
-  #   assert length(Tracker.Torrent.list_all_peers("aaaaaaaaaaaaaaaaaaaa")) == 1
+  #   assert Tracker.File.Peers.count(info_hash) == 1
 
   #   request = %{request | event: "stopped", trackerid: response["trackerid"]}
   #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
@@ -115,112 +118,109 @@ defmodule Tracker.PlugTest do
 
   #   refute response["failure_reason"]
   #   # should have no peers by now
-  #   :timer.sleep 10
-  #   assert length(Tracker.Torrent.list_all_peers("aaaaaaaaaaaaaaaaaaaa")) == 0
+  #   # todo, implement removal of peers
+  #   assert Tracker.File.Peers.count(info_hash) == 0
   # end
 
-  # test "announce should be able to complete a given peer" do
-  #   pid = Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       numwant: 0,
-  #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"}
-  #     |> Map.from_struct
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
+  test "announce should be able to complete a given peer" do
+    info_hash = "aaaaaaaaaaaaaaaaaaaa"
+    Tracker.add(info_hash)
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        ip: {127, 0, 0, 1},
+        info_hash: info_hash}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
 
-  #   refute response["failure_reason"]
-  #   assert response["trackerid"]
-  #   # should have one incomplete and zero complete by now
-  #   assert :gproc.get_value({:c, :l, :incomplete}, pid) == 1
-  #   assert :gproc.get_value({:c, :l, :complete}, pid) == 0
+    # at this point the peer is incomplete
+    assert Statistics.get(info_hash) == %Statistics{downloaded: 0, complete: 0, incomplete: 1}
+    # announce the peer complete
+    request = %{request | downloaded: 700, event: "completed", trackerid: response["trackerid"]}
+    conn(:get, "/announce", request) |> TestTracker.call([])
 
-  #   request = %{request | downloaded: 700, event: "completed", trackerid: response["trackerid"]}
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
+    assert Statistics.get(info_hash) == %Statistics{downloaded: 1, complete: 1, incomplete: 0}
+  end
 
-  #   refute response["failure_reason"]
-  #   :timer.sleep 10
-  #   # should have one complete and zero incomplete by now
-  #   assert :gproc.get_value({:c, :l, :incomplete}, pid) == 0
-  #   assert :gproc.get_value({:c, :l, :complete}, pid) == 1
-  # end
+  test "announce should be able to announce without an event" do
+    info_hash = "aaaaaaaaaaaaaaaaaaaa"
+    Tracker.add(info_hash)
+    # start peer
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        info_hash: info_hash}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
 
-  # test "announce should be able to announce without an event" do
-  #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
-  #   # start peer
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       numwant: 0,
-  #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"}
-  #     |> Map.from_struct
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
+    refute response["failure_reason"]
+    assert response["trackerid"]
 
-  #   refute response["failure_reason"]
-  #   assert response["trackerid"]
+    request = %{request | downloaded: 700, trackerid: response["trackerid"]} |> Map.delete(:event)
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    refute response["failure_reason"]
+  end
 
-  #   request = %{request | downloaded: 700, trackerid: response["trackerid"]} |> Map.delete(:event)
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
-  #   refute response["failure_reason"]
-  # end
+  test "announce should return an error if event is set but no trackerid is given" do
+    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    # start peer
+    request =
+      %Request{
+        event: "started",
+        numwant: 0,
+        port: 31337,
+        info_hash: "aaaaaaaaaaaaaaaaaaaa"}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    refute response["failure_reason"]
+    assert response["trackerid"]
 
-  # test "announce should return an error if event is set but no trackerid is given" do
-  #   Tracker.Torrent.create(%{info_hash: "aaaaaaaaaaaaaaaaaaaa", size: 700, name: "foo bar"})
-  #   # start peer
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       numwant: 0,
-  #       port: 31337,
-  #       info_hash: "aaaaaaaaaaaaaaaaaaaa"}
-  #     |> Map.from_struct
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
-  #   refute response["failure_reason"]
-  #   assert response["trackerid"]
+    # make a new request, but do not specify a trackerid
+    request = %{request | event: "completed", downloaded: 700}
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    assert response["failure_reason"]
+  end
 
-  #   # make a new request, but do not specify a trackerid
-  #   request = %{request | event: "completed", downloaded: 700}
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
-  #   assert response["failure_reason"]
-  # end
-
-  # test "announce should return a list of peers" do
-  #   info_hash = "aaaaaaaaaaaaaaaaaaaa"
-  #   torrent_pid = create_torrent(%{info_hash: info_hash, size: 700, name: "foo bar"})
-  #   # spawn some peers
-  #   for {peer_id, port} <- [{"bar", 12341}] do
-  #     peer_data =
-  #       %{info_hash: info_hash,
-  #         peer_id: peer_id,
-  #         port: port}
-  #     create_peer(torrent_pid, peer_data)
-  #   end
-  #   :timer.sleep 10
-  #   # start peer
-  #   request =
-  #     %Request{
-  #       event: "started",
-  #       numwant: 35,
-  #       port: 31337,
-  #       info_hash: info_hash}
-  #     |> Map.from_struct
-  #   conn = conn(:get, "/announce", request) |> TestTracker.call([])
-  #   response = Bencode.decode(conn.resp_body)
-  #   refute response["failure_reason"]
-  #   expected =
-  #     %{"peer_id" => "bar",
-  #       "ip" => "127.0.0.1",
-  #       "port" => 12341}
-  #   assert response["peers"] == [expected]
-  # end
+  test "announce should return a list of peers" do
+    info_hash = "aaaaaaaaaaaaaaaaaaaa"
+    peer_id = "foo_bar"
+    {:ok, _pid} = Tracker.add(info_hash)
+    # spawn some peers
+    {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce_data =
+      %{"event" => "started",
+        "numwant" => 0,
+        "ip" => {127, 0, 0, 1}, "port" => 12341,
+        "peer_id" => peer_id, "info_hash" => info_hash,
+        "trackerid" => trackerid
+       }
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
+    # start peer
+    request =
+      %Request{
+        event: "started",
+        numwant: 35,
+        port: 31337,
+        info_hash: info_hash}
+      |> Map.from_struct
+    conn = conn(:get, "/announce", request) |> TestTracker.call([])
+    response = Bencode.decode(conn.resp_body)
+    refute response["failure_reason"]
+    expected =
+      %{"peer_id" => peer_id,
+        "ip" => "127.0.0.1",
+        "port" => 12341}
+    assert response["peers"] == [expected]
+  end
 
   # test "announce should return a list of peers in compact format if requested as such" do
   #   info_hash = "aaaaaaaaaaaaaaaaaaaa"

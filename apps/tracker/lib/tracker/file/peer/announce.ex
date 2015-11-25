@@ -36,7 +36,7 @@ defmodule Tracker.File.Peer.Announce do
   end
 
   # handle announce
-  def handle_call({:announce, %{"event" => "started"} = announce}, _from, state) do
+  def handle_call({:announce, %{"event" => "started", "ip" => ip} = announce}, _from, state) when ip != nil do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     state = update_announce_state(state, announce)
 
@@ -50,7 +50,6 @@ defmodule Tracker.File.Peer.Announce do
   def handle_call({:announce, %{"event" => "completed"} = announce}, _from, %{status: :incomplete} = state) do
     :ok = State.update(state.info_hash, state.trackerid, announce)
     state = update_announce_state(state, announce)
-
     Statistics.a_peer_completed(state.info_hash)
 
     set_peer_meta_data(state)

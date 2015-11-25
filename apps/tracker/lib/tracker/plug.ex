@@ -86,7 +86,7 @@ defmodule Tracker.Plug do
     end
   end
   defp get_pid(conn, %{"trackerid" => trackerid, "info_hash" => info_hash} = announce) do
-    case :gproc.where({:n, :l, {Tracker.Peer, trackerid, info_hash}}) do
+    case :gproc.where({:n, :l, {Tracker.File.Peer, {info_hash, trackerid}}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
 
@@ -118,47 +118,47 @@ defmodule Tracker.Plug do
   end
 
   # from now on `trackerid` must be present, otherwise regard it as an error
-  defp handle_announce(conn, _pid, %{trackerid: nil}) do
+  defp handle_announce(conn, _pid, %{"trackerid" => nil}) do
     send_resp(conn, 400, @error_no_trackerid_specified)
   end
 
-  defp handle_announce(conn, pid, %{event: "stopped"} = announce) do
+  defp handle_announce(conn, pid, %{"event" => "stopped"} = announce) do
     Tracker.Peer.announce(pid, announce)
-    {_, statistics} = get_statistics(announce.info_hash)
-
+    statistics = Statistics.get(announce["info_hash"])
     response =
       %{peers: [], # send zero peers back
-        trackerid: announce.trackerid,
-        complete: statistics[:complete],
-        incomplete: statistics[:incomplete],
+        trackerid: announce["trackerid"],
+        complete: statistics.complete,
+        incomplete: statistics.incomplete,
         interval: @default_interval}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
 
-  defp handle_announce(conn, pid, %{event: "completed"} = announce) do
-    Tracker.Peer.announce(pid, announce)
-    {_, statistics} = get_statistics(announce.info_hash)
+  defp handle_announce(conn, _pid, %{"event" => "completed", "info_hash" => info_hash, "trackerid" => trackerid} = announce) do
+    statistics = Statistics.get(announce["info_hash"])
     # send a list of 35-50 (or numwant) peers (without seeders!) to the peer
+    peer_list = Announce.announce(info_hash, trackerid, announce)
     response =
-      %{peers: Tracker.Peer.get_peers(pid, announce),
-        trackerid: announce.trackerid,
-        complete: statistics[:complete],
-        incomplete: statistics[:incomplete],
+      %{peers: peer_list,
+        trackerid: announce["trackerid"],
+        complete: statistics.complete,
+        incomplete: statistics.incomplete,
         interval: @default_interval}
 
     send_resp(conn, 200, Bencode.encode(response))
   end
 
-  defp handle_announce(conn, pid, announce) do
-    Tracker.Peer.announce(pid, announce)
-    {_, statistics} = get_statistics(announce.info_hash)
+  defp handle_announce(conn, _pid, %{"info_hash" => info_hash, "trackerid" => trackerid} = announce) do
+    statistics = Statistics.get(info_hash)
+    peer_list = Announce.announce(info_hash, trackerid, announce)
+
     # send a list of peers back
     response =
-      %{peers: Tracker.Peer.get_peers(pid, announce),
-        trackerid: announce.trackerid,
-        complete: statistics[:complete],
-        incomplete: statistics[:incomplete],
+      %{peers: peer_list,
+        trackerid: trackerid,
+        complete: statistics.complete,
+        incomplete: statistics.incomplete,
         interval: @default_interval}
 
     send_resp(conn, 200, Bencode.encode(response))
@@ -216,11 +216,4 @@ defmodule Tracker.Plug do
 
   defp extract_info_hash(<<"info_hash=", info_hash::binary-size(20)>>),
     do: info_hash
-
-  # Helper for getting the statistics for a given tracked torrent.
-  # This should get refactored at some point
-  defp get_statistics(info_hash) do
-    torrent_pid = :gproc.where({:n, :l, {Tracker.Torrent, info_hash}})
-    Tracker.Torrent.get_statistics(torrent_pid, info_hash)
-  end
 end
