@@ -99,8 +99,8 @@ defmodule Tracker.Plug do
     case Tracker.File.Peers.add(info_hash) do
       {:ok, _peer_pid, trackerid} ->
         # send numwant (or 35) peers back
-        statistics = Statistics.get(info_hash)
         peer_list = Announce.announce(info_hash, trackerid, announce)
+        statistics = Statistics.get(info_hash)
         response =
           %{peers: peer_list,
             trackerid: trackerid,
@@ -136,9 +136,9 @@ defmodule Tracker.Plug do
   end
 
   defp handle_announce(conn, _pid, %{"event" => "completed", "info_hash" => info_hash, "trackerid" => trackerid} = announce) do
-    statistics = Statistics.get(announce["info_hash"])
     # send a list of 35-50 (or numwant) peers (without seeders!) to the peer
     peer_list = Announce.announce(info_hash, trackerid, announce)
+    statistics = Statistics.get(announce["info_hash"])
     response =
       %{peers: peer_list,
         trackerid: announce["trackerid"],
@@ -150,9 +150,8 @@ defmodule Tracker.Plug do
   end
 
   defp handle_announce(conn, _pid, %{"info_hash" => info_hash, "trackerid" => trackerid} = announce) do
-    statistics = Statistics.get(info_hash)
     peer_list = Announce.announce(info_hash, trackerid, announce)
-
+    statistics = Statistics.get(info_hash)
     # send a list of peers back
     response =
       %{peers: peer_list,
