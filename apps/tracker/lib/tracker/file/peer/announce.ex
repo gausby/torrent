@@ -58,13 +58,15 @@ defmodule Tracker.File.Peer.Announce do
     {:reply, peer_list, state}
   end
 
-  def handle_call({:announce, %{"event" => "stopped"}}, _from, %{status: :complete} = state) do
+  def handle_call({:announce, %{"event" => "stopped"} = announce}, _from, %{status: :complete} = state) do
+    state = update_announce_state(state, announce)
     Statistics.a_completed_peer_stopped(state.info_hash)
-    {:reply, [], state}
+    {:stop, :normal, [], state}
   end
-  def handle_call({:announce, %{"event" => "stopped"}}, _from, %{status: :incomplete} = state) do
+  def handle_call({:announce, %{"event" => "stopped"} = announce}, _from, %{status: :incomplete} = state) do
+    state = update_announce_state(state, announce)
     Statistics.an_incomplete_peer_stopped(state.info_hash)
-    {:reply, [], state}
+    {:stop, :normal, [], state}
   end
 
   def handle_call({:announce, announce}, _from, state) do
