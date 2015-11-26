@@ -224,7 +224,6 @@ defmodule Tracker.PlugTest do
 
   test "announce should return a list of peers in compact format if requested as such" do
     info_hash = "aaaaaaaaaaaaaaaaaaaa"
-    peer_id = "foo"
     Tracker.add(info_hash)
     {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
     # spawn some peers
@@ -232,7 +231,7 @@ defmodule Tracker.PlugTest do
       %{"event" => "started",
         "numwant" => 0,
         "ip" => {127, 0, 0, 1}, "port" => 12341,
-        "peer_id" => peer_id, "info_hash" => info_hash,
+        "peer_id" => "foo", "info_hash" => info_hash,
         "trackerid" => trackerid
        }
     Tracker.File.Peer.Announce.announce(info_hash, trackerid, announce_data)
