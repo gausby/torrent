@@ -27,6 +27,11 @@ defmodule Tracker.File.Peers do
     {:ok, pid, trackerid}
   end
 
+  def remove(info_hash, trackerid) do
+    pid = :gproc.where({:n, :l, {Tracker.File.Peer, {info_hash, trackerid}}})
+    Supervisor.terminate_child(via_name(info_hash), pid)
+  end
+
   def count(info_hash) do
     Supervisor.count_children(via_name(info_hash)).active
   end

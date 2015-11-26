@@ -163,6 +163,24 @@ defmodule TrackerTest do
     assert expected == Tracker.File.Statistics.get(info_hash)
   end
 
+  test "peer should be removed from the registry when removed" do
+    info_hash = "12345678901234567890"
+    Tracker.add(info_hash)
+    :gproc.await({:n, :l, {Tracker.File, info_hash}}, 200)
+    {:ok, pid, trackerid} = Tracker.File.Peers.add(info_hash)
+    announce_data =
+      %{"ip" => {127, 0, 0, 1},
+        "port" => 12345,
+        "peer_id" => "xxxxxxxxxxxxxxxxxxxx"}
+    # start peer
+    peer_data = Map.merge(announce_data, %{"event" => "started"})
+    Tracker.File.Peer.Announce.announce(info_hash, trackerid, peer_data)
+
+    assert Process.alive?(pid)
+    Tracker.File.Peers.remove(info_hash, trackerid)
+    refute Process.alive?(pid)
+  end
+
   # Randomly killing a new torrent =====================================
   # test "when killed it should respawn and collect data from the peers"
 
