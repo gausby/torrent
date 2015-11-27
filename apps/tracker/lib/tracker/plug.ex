@@ -165,37 +165,34 @@ defmodule Tracker.Plug do
 
   #=SCRAPE =============================================================
   defp handle_scrape(%Plug.Conn{} = conn) do
-    case get_info_hashes(conn) do
-      [] ->
-        match = {{:n, :l, {Tracker.Torrent, :'_'}}, :'$1', :'_'}
-        files =
-          :gproc.select([{match, [], [:'$$']}])
-          |> Stream.map(&extract_pid_and_info_hash/1)
-          |> Stream.map(&get_statistics_for_tracker/1)
-          |> Enum.into(%{})
+    info_hashes = get_info_hashes(conn)
+    match = {{:n, :l, {Tracker.File.Statistics, :'$1'}}, :'_', :'$2'}
+    result_format = [{{:'$1', :'$2'}}] # info_hash and cache value
+    files =
+      :gproc.select([{match, query_builder(info_hashes, :'$1'), result_format}])
+      |> Stream.map(&extract_info_hash_and_value/1)
+      |> Enum.into(%{})
 
-        send_resp conn, 200, Bencode.encode(%{files: files})
-
-      info_hashes ->
-        files =
-          info_hashes
-          |> Stream.map(&find_pid_from_info_hash/1)
-          |> Stream.filter(&filter_out_undefined/1)
-          |> Stream.map(&get_statistics_for_tracker/1)
-          |> Enum.into(%{})
-
-        send_resp conn, 200, Bencode.encode(%{files: files})
-    end
+    send_resp conn, 200, Bencode.encode(%{files: files})
   end
   # handle scrape helpers
-  defp extract_pid_and_info_hash([{:n, :l, {_, info_hash}}, pid, _]),
-    do: {pid, info_hash}
-  defp find_pid_from_info_hash(info_hash),
-    do: {:gproc.where({:n, :l, {Tracker.Torrent, info_hash}}), info_hash}
-  defp filter_out_undefined({pid, _}),
-    do: pid != :undefined
-  defp get_statistics_for_tracker({pid, info_hash}),
-    do: Tracker.Torrent.get_statistics(pid, info_hash)
+  defp extract_info_hash_and_value({info_hash, :undefined}),
+    do: {info_hash, Map.from_struct(%Statistics{})}
+  defp extract_info_hash_and_value({info_hash, statistics}),
+    do: {info_hash, statistics}
+
+  # helper for building ets matchers that look for a list of info_hashes
+  defp query_builder([], _),
+    do: []
+  defp query_builder(query, subject),
+    do: [query_either(query, subject)]
+
+  def query_either([a|[]], subject),
+    do: query_equals(subject, a)
+  def query_either([a|b], subject),
+    do: {:or, query_equals(subject, a), query_either(b, subject)}
+
+  def query_equals(a, b), do: {:'==', a, b}
 
   # Creating a custom query string parser specificly for info_hash-values,
   # as the default query parser will return a map, resulting in only the

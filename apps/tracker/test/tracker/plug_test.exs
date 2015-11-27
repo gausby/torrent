@@ -277,56 +277,51 @@ defmodule Tracker.PlugTest do
     assert response["complete"] == 0
   end
 
-  # # scrape =============================================================
-  # test "should be able to scrape" do
-  #   info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
-  #   result = for info_hash <- info_hashes, into: %{} do
-  #     Tracker.Torrent.create(%{info_hash: info_hash, size: 1, name: info_hash})
-  #     {info_hash, %{complete: 0, downloads: 0, incomplete: 0}}
-  #   end
-  #   :timer.sleep 10
-  #   conn = conn(:get, "/scrape") |> TestTracker.call([])
+  # scrape =============================================================
+  test "should be able to scrape" do
+    info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
+    result = for info_hash <- info_hashes, into: %{} do
+      Tracker.add(info_hash)
+      {info_hash, %{complete: 0, downloaded: 0, incomplete: 0}}
+    end
+    conn = conn(:get, "/scrape") |> TestTracker.call([])
+    assert conn.resp_body == Bencode.encode(%{files: result})
+  end
 
-  #   assert conn.resp_body == Bencode.encode(%{files: result})
-  # end
+  test "should return an empty list when scraping a tracker that track no files" do
+    conn = conn(:get, "/scrape") |> TestTracker.call([])
+    assert conn.resp_body == Bencode.encode(%{files: %{}})
+  end
 
-  # test "should return an empty list when scraping a tracker that track no torrents" do
-  #   conn = conn(:get, "/scrape") |> TestTracker.call([])
-  #   assert conn.resp_body == Bencode.encode(%{files: %{}})
-  # end
+  test "should return an empty list when scraping and specifying a torrent that does not exist" do
+    conn = conn(:get, "/scrape?info_hash=aaaaaaaaaaaaaaaaaaaa") |> TestTracker.call([])
+    assert conn.resp_body == Bencode.encode(%{files: %{}})
+  end
 
-  # test "should return an empty list when scraping and specifying a torrent that does not exist" do
-  #   conn = conn(:get, "/scrape?info_hash=aaaaaaaaaaaaaaaaaaaa") |> TestTracker.call([])
-  #   assert conn.resp_body == Bencode.encode(%{files: %{}})
-  # end
+  test "should be able to specify the info_hash of interest when scraping" do
+    info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
+    result = for info_hash <- info_hashes, into: %{} do
+      Tracker.add(info_hash)
+      {info_hash, %{complete: 0, downloaded: 0, incomplete: 0}}
+    end
+    conn = conn(:get, "/scrape?info_hash=bbbbbbbbbbbbbbbbbbbb") |> TestTracker.call([])
 
-  # test "should be able to specify the info_hash of interest when scraping" do
-  #   info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
-  #   result = for info_hash <- info_hashes, into: %{} do
-  #     Tracker.Torrent.create(%{info_hash: info_hash, size: 1, name: info_hash})
-  #     {info_hash, %{complete: 0, downloads: 0, incomplete: 0}}
-  #   end
-  #   :timer.sleep 10
-  #   conn = conn(:get, "/scrape?info_hash=bbbbbbbbbbbbbbbbbbbb") |> TestTracker.call([])
+    assert conn.resp_body == Bencode.encode(%{files: %{bbbbbbbbbbbbbbbbbbbb: result["bbbbbbbbbbbbbbbbbbbb"]}})
+  end
 
-  #   assert conn.resp_body == Bencode.encode(%{files: %{bbbbbbbbbbbbbbbbbbbb: result["bbbbbbbbbbbbbbbbbbbb"]}})
-  # end
+  test "should be able to specify multiple info_hashes of interest when scraping" do
+    info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
+    result = for info_hash <- info_hashes, into: %{} do
+      Tracker.add(info_hash)
+      {info_hash, %{complete: 0, downloaded: 0, incomplete: 0}}
+    end
+    conn = conn(:get, "/scrape?info_hash=bbbbbbbbbbbbbbbbbbbb&info_hash=cccccccccccccccccccc") |> TestTracker.call([])
+    expected_result =
+      Bencode.encode(
+        %{files: %{
+             bbbbbbbbbbbbbbbbbbbb: result["bbbbbbbbbbbbbbbbbbbb"],
+             cccccccccccccccccccc: result["cccccccccccccccccccc"]}})
 
-  # test "should be able to specify multiple info_hashes of interest when scraping" do
-  #   info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
-  #   result = for info_hash <- info_hashes, into: %{} do
-  #     Tracker.Torrent.create(%{info_hash: info_hash, size: 1, name: info_hash})
-  #     {info_hash, %{complete: 0, downloads: 0, incomplete: 0}}
-  #   end
-  #   :timer.sleep 10
-  #   conn = conn(:get, "/scrape?info_hash=bbbbbbbbbbbbbbbbbbbb&info_hash=cccccccccccccccccccc") |> TestTracker.call([])
-
-  #   expected_result =
-  #     Bencode.encode(
-  #       %{files: %{
-  #            bbbbbbbbbbbbbbbbbbbb: result["bbbbbbbbbbbbbbbbbbbb"],
-  #            cccccccccccccccccccc: result["cccccccccccccccccccc"]}})
-
-  #   assert conn.resp_body == expected_result
-  # end
+    assert conn.resp_body == expected_result
+  end
 end
