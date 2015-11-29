@@ -9,7 +9,7 @@ defmodule Tracker.File.Peer.Fuse do
   defp via_name(info_hash, trackerid),
     do: {:via, :gproc, peer_name(info_hash, trackerid)}
   defp peer_name(info_hash, trackerid),
-    do: {:n, :l, {__MODULE__, {info_hash, trackerid}}}
+    do: {:n, :l, {__MODULE__, info_hash, trackerid}}
 
   # Server callbacks
   def init(state) do

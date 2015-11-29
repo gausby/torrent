@@ -86,7 +86,7 @@ defmodule Tracker.Plug do
     end
   end
   defp get_pid(conn, %{"trackerid" => trackerid, "info_hash" => info_hash} = announce) do
-    case :gproc.where({:n, :l, {Tracker.File.Peer, {info_hash, trackerid}}}) do
+    case :gproc.where({:n, :l, {Tracker.File.Peer, info_hash, trackerid}}) do
       :undefined ->
         send_resp(conn, 404, @error_unknown_peer)
 

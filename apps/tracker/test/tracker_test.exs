@@ -33,7 +33,7 @@ defmodule TrackerTest do
     :gproc.await({:n, :l, {Tracker.File.Peers, info_hash}}, 200)
 
     {:ok, pid, trackerid} = Tracker.File.Peers.add(info_hash)
-    assert {^pid, _} = :gproc.await({:n, :l, {Tracker.File.Peer, {info_hash, trackerid}}}, 200)
+    assert {^pid, _} = :gproc.await({:n, :l, {Tracker.File.Peer, info_hash, trackerid}}, 200)
   end
 
   test "creating multiple peers should different trackerids" do
@@ -55,8 +55,8 @@ defmodule TrackerTest do
     {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
     {:ok, _pid, trackerid2} = Tracker.File.Peers.add(info_hash)
 
-    {peer_pid1, _} = :gproc.await({:n, :l, {Tracker.File.Peer, {info_hash, trackerid}}})
-    {peer_pid2, _} = :gproc.await({:n, :l, {Tracker.File.Peer, {info_hash, trackerid2}}})
+    {peer_pid1, _} = :gproc.await({:n, :l, {Tracker.File.Peer, info_hash, trackerid}})
+    {peer_pid2, _} = :gproc.await({:n, :l, {Tracker.File.Peer, info_hash, trackerid2}})
 
     assert Process.alive?(file_pid)
     assert Process.alive?(peer_pid1)

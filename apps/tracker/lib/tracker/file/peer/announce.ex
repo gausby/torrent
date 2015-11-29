@@ -22,7 +22,7 @@ defmodule Tracker.File.Peer.Announce do
   defp via_name(info_hash, trackerid),
     do: {:via, :gproc, peer_name(info_hash, trackerid)}
   defp peer_name(info_hash, trackerid),
-    do: {:n, :l, {__MODULE__, {info_hash, trackerid}}}
+    do: {:n, :l, {__MODULE__, info_hash, trackerid}}
 
   def announce(info_hash, trackerid, data) do
     GenServer.call(via_name(info_hash, trackerid), {:announce, data})

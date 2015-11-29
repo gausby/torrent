@@ -8,7 +8,7 @@ defmodule Tracker.File.Peer do
   defp via_name(info_hash, trackerid),
     do: {:via, :gproc, peer_name(info_hash, trackerid)}
   defp peer_name(info_hash, trackerid),
-    do: {:n, :l, {__MODULE__, {info_hash, trackerid}}}
+    do: {:n, :l, {__MODULE__, info_hash, trackerid}}
 
   def init(opts) do
     children = [
