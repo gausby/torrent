@@ -31,7 +31,6 @@ defmodule Tracker.File.Peer.Announce do
   # Server callbacks
   def init([info_hash: info_hash, trackerid: trackerid]) do
     state = %__MODULE__{info_hash: info_hash, trackerid: trackerid}
-    :gproc.reg({:p, :l, {__MODULE__, state.info_hash}}, nil)
     {:ok, state}
   end
 
@@ -141,7 +140,7 @@ defmodule Tracker.File.Peer.Announce do
 
     data = %{ip: formatted_ip, peer_id: state.peer_id, port: state.port}
 
-    :gproc.set_value({:p, :l, {__MODULE__, state.info_hash}}, {state.status, data, compact})
+    :gproc.set_value(peer_name(state.info_hash, state.trackerid), {state.status, data, compact})
   end
 
   defp get_peers(_pid, _state, %{"numwant" => 0} = announce) do
@@ -151,7 +150,7 @@ defmodule Tracker.File.Peer.Announce do
     # completed peers should get a list of incomplete back (no seeders for seeders)
     interest = if state.status, do: :incomplete, else: :'_'
 
-    key = {:p, :l, {__MODULE__, state.info_hash}}
+    key = peer_name(state.info_hash, :'_')
     match = {key, :'$0', {interest, :'_', :'$1'}}
     # Filter out the calling peer and peers that does not support compact
     # by checking here we should uphold the numwant number
@@ -160,7 +159,7 @@ defmodule Tracker.File.Peer.Announce do
 
     numwant = announce["numwant"] || 35
 
-    case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
+    case :gproc.select({:l, :n}, [{match, guard, format}], numwant) do
       {peers, _} ->
         peers
         |> Enum.filter(&(&1))
@@ -174,13 +173,13 @@ defmodule Tracker.File.Peer.Announce do
     # completed peers should get a list of incomplete back (no seeders for seeders)
     interest = if state.status, do: :incomplete, else: :'_'
 
-    key = {:p, :l, {__MODULE__, state.info_hash}}
+    key = peer_name(state.info_hash, :'_')
     match = {key, :'$0', {interest, :'$1', :'_'}}
     guard = [{:'=/=', :'$0', pid}] # filter out the calling peer
     format = [:'$1']
 
     numwant = announce["numwant"] || 35
-    case :gproc.select({:l, :p}, [{match, guard, format}], numwant) do
+    case :gproc.select({:l, :n}, [{match, guard, format}], numwant) do
       {peers, _} ->
         cond do
           announce["no_peer_id"] == 1 ->
