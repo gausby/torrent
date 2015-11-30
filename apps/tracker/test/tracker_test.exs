@@ -304,7 +304,9 @@ defmodule TrackerTest do
     {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
     announce = Tracker.File.Peer.Announce.announce(info_hash, trackerid, Map.put(data, "compact", 1))
 
-    assert announce == <<127, 0, 0, 1, 48, 58, 127, 0, 0, 1, 48, 59>>
+    result = String.split_at(announce, 6) |> Tuple.to_list
+    assert <<127, 0, 0, 1, 48, 58>> in result
+    assert <<127, 0, 0, 1, 48, 59>> in result
   end
 
   test "a peer should be able to switch ip and port if key is provided during announce" do
