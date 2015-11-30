@@ -18,4 +18,20 @@ defmodule Tracker.File do
     ]
     supervise(children, strategy: :one_for_one)
   end
+
+  @supervisor Tracker
+  def create(info_hash) do
+    case Supervisor.start_child(@supervisor, [info_hash]) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error, {:already_started, pid}} ->
+        {:ok, pid}
+    end
+  end
+
+  def remove(info_hash) do
+    pid = :gproc.where({:n, :l, {Tracker.File, info_hash}})
+    Supervisor.terminate_child(@supervisor, pid)
+  end
 end

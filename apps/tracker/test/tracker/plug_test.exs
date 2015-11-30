@@ -35,7 +35,7 @@ defmodule Tracker.PlugTest do
 
   # Announce ===========================================================
   test "announce should return an empty list when asking for zero peers" do
-    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    Tracker.File.create("aaaaaaaaaaaaaaaaaaaa")
 
     request =
       %Request{
@@ -56,7 +56,7 @@ defmodule Tracker.PlugTest do
   end
 
   test "announce should return an interval" do
-    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    Tracker.File.create("aaaaaaaaaaaaaaaaaaaa")
     request =
       %Request{
         event: "started",
@@ -76,7 +76,7 @@ defmodule Tracker.PlugTest do
   end
 
   test "announce should return an error if event is started and a trackerid is set" do
-    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    Tracker.File.create("aaaaaaaaaaaaaaaaaaaa")
     request =
       %Request{
         event: "started",
@@ -96,7 +96,7 @@ defmodule Tracker.PlugTest do
 
   # test "announce should be able to stop tracking a given peer" do
   #   info_hash = "aaaaaaaaaaaaaaaaaaaa"
-  #   Tracker.add(info_hash)
+  #   Tracker.File.create(info_hash)
   #   request =
   #     %Request{
   #       event: "started",
@@ -124,7 +124,7 @@ defmodule Tracker.PlugTest do
 
   test "announce should be able to complete a given peer" do
     info_hash = "aaaaaaaaaaaaaaaaaaaa"
-    Tracker.add(info_hash)
+    Tracker.File.create(info_hash)
     request =
       %Request{
         event: "started",
@@ -147,7 +147,7 @@ defmodule Tracker.PlugTest do
 
   test "announce should be able to announce without an event" do
     info_hash = "aaaaaaaaaaaaaaaaaaaa"
-    Tracker.add(info_hash)
+    Tracker.File.create(info_hash)
     # start peer
     request =
       %Request{
@@ -169,7 +169,7 @@ defmodule Tracker.PlugTest do
   end
 
   test "announce should return an error if event is set but no trackerid is given" do
-    Tracker.add("aaaaaaaaaaaaaaaaaaaa")
+    Tracker.File.create("aaaaaaaaaaaaaaaaaaaa")
     # start peer
     request =
       %Request{
@@ -193,7 +193,7 @@ defmodule Tracker.PlugTest do
   test "announce should return a list of peers" do
     info_hash = "aaaaaaaaaaaaaaaaaaaa"
     peer_id = "foo_bar"
-    {:ok, _pid} = Tracker.add(info_hash)
+    {:ok, _pid} = Tracker.File.create(info_hash)
     # spawn some peers
     {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
     announce_data =
@@ -224,7 +224,7 @@ defmodule Tracker.PlugTest do
 
   test "announce should return a list of peers in compact format if requested as such" do
     info_hash = "aaaaaaaaaaaaaaaaaaaa"
-    Tracker.add(info_hash)
+    Tracker.File.create(info_hash)
     {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
     # spawn some peers
     announce_data =
@@ -252,7 +252,7 @@ defmodule Tracker.PlugTest do
 
   test "announce should statistics for the given torrent" do
     info_hash = "aaaaaaaaaaaaaaaaaaaa"
-    Tracker.add(info_hash)
+    Tracker.File.create(info_hash)
     {:ok, _pid, trackerid} = Tracker.File.Peers.add(info_hash)
     # spawn some peers
     announce_data =
@@ -281,7 +281,7 @@ defmodule Tracker.PlugTest do
   test "should be able to scrape" do
     info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
     result = for info_hash <- info_hashes, into: %{} do
-      Tracker.add(info_hash)
+      Tracker.File.create(info_hash)
       {info_hash, %{complete: 0, downloaded: 0, incomplete: 0}}
     end
     conn = conn(:get, "/scrape") |> TestTracker.call([])
@@ -301,7 +301,7 @@ defmodule Tracker.PlugTest do
   test "should be able to specify the info_hash of interest when scraping" do
     info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
     result = for info_hash <- info_hashes, into: %{} do
-      Tracker.add(info_hash)
+      Tracker.File.create(info_hash)
       {info_hash, %{complete: 0, downloaded: 0, incomplete: 0}}
     end
     conn = conn(:get, "/scrape?info_hash=bbbbbbbbbbbbbbbbbbbb") |> TestTracker.call([])
@@ -312,7 +312,7 @@ defmodule Tracker.PlugTest do
   test "should be able to specify multiple info_hashes of interest when scraping" do
     info_hashes = ["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"]
     result = for info_hash <- info_hashes, into: %{} do
-      Tracker.add(info_hash)
+      Tracker.File.create(info_hash)
       {info_hash, %{complete: 0, downloaded: 0, incomplete: 0}}
     end
     conn = conn(:get, "/scrape?info_hash=bbbbbbbbbbbbbbbbbbbb&info_hash=cccccccccccccccccccc") |> TestTracker.call([])
