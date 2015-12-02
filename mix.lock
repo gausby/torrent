@@ -1,5 +1,6 @@
 %{"cowboy": {:hex, :cowboy, "1.0.3"},
   "cowlib": {:hex, :cowlib, "1.0.1"},
+  "eqc_ex": {:hex, :eqc_ex, "1.2.4"},
   "gproc": {:hex, :gproc, "0.5.0"},
   "plug": {:hex, :plug, "1.0.2"},
   "ranch": {:hex, :ranch, "1.1.0"},

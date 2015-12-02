@@ -7,6 +7,7 @@ defmodule Tracker.Mixfile do
      deps_path: "../../deps",
      lockfile: "../../mix.lock",
      elixir: "~> 1.1",
+     test_pattern: "*_{test,eqc}.exs",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps]
@@ -19,7 +20,8 @@ defmodule Tracker.Mixfile do
 
   # Dependencies can be Hex packages:
   defp deps do
-    [{:cowboy, "~> 1.0.0"},
+    [{:eqc_ex, "~> 1.2.4"},
+     {:cowboy, "~> 1.0.0"},
      {:plug, "~> 1.0"},
      {:gproc, "~> 0.5.0"},
      {:uuid, "~> 1.0.1"},
