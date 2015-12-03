@@ -15,6 +15,14 @@ defmodule BencodeEQC do
     end
   end
 
+  # strings
+  property "encode strings" do
+    forall input <- utf8 do
+      expected = "#{Integer.to_string(byte_size(input))}:#{input}"
+      ensure Bencode.encode(input) == expected
+    end
+  end
+
   property "Encoding strings followed by a decode should result in the input" do
     forall input <- utf8 do
       ensure Bencode.decode(Bencode.encode(input)) == input
