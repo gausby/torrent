@@ -26,4 +26,10 @@ defmodule BencodeEQC do
       ensure Bencode.decode(Bencode.encode(input)) == input
     end
   end
+
+  property "Encoded maps should decode to the input" do
+    forall input <- map(utf8, utf8) do
+      ensure Bencode.decode(Bencode.encode(input)) == input
+    end
+  end
 end
