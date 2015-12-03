@@ -16,7 +16,7 @@ end
 
 defimpl Bencode.Encoder, for: BitString do
   def encode(data),
-    do: "#{String.length data}:#{data}"
+    do: "#{byte_size data}:#{data}"
 end
 
 defimpl Bencode.Encoder, for: Integer do

@@ -14,4 +14,16 @@ defmodule BencodeEQC do
       ensure Bencode.decode(Bencode.encode(input)) == input
     end
   end
+
+  property "Encoding strings followed by a decode should result in the input" do
+    forall input <- utf8 do
+      ensure Bencode.decode(Bencode.encode(input)) == input
+    end
+  end
+
+  property "Encoding lists of strings followed by a decode should result in the input" do
+    forall input <- list(utf8) do
+      ensure Bencode.decode(Bencode.encode(input)) == input
+    end
+  end
 end

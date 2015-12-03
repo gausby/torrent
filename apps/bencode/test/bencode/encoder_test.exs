@@ -4,7 +4,7 @@ defmodule Bencode.EncoderTest do
 
   test "Bencode encoding strings" do
     assert Bencode.Encoder.encode("") == "0:"
-    assert Bencode.Encoder.encode("josé") == "4:josé"
+    assert Bencode.Encoder.encode("josé") == "5:josé"
   end
 
   test "Bencode encoding integers" do
