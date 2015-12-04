@@ -40,4 +40,33 @@ defmodule BencodeEQC do
       ensure Bencode.decode(Bencode.encode(input)) == input
     end
   end
+
+  # misc
+  property "random nested data structures" do
+    structure =
+      frequency(
+        [{1, utf8},
+         {1, int},
+         {1, list(
+             frequency(
+               [{1, utf8},
+                {1, int},
+                {1, list(frequency([{1, utf8}, {1, int}]))},
+                {1, map(utf8, frequency([{1, utf8}, {1, int}]))}]))},
+         {1, map(
+             utf8, frequency(
+               [{1, utf8},
+                {1, int},
+                {1, list(
+                    frequency(
+                      [{1, utf8},
+                       {1, int},
+                       {1, list(frequency([{1, utf8}, {1, int}]))},
+                       {1, map(utf8, frequency([{1, utf8}, {1, int}]))}]))},
+                {1, map(utf8, frequency([{1, utf8}, {1, int}]))}]))}])
+
+    forall input <- structure do
+      ensure Bencode.decode(Bencode.encode(input)) == input
+    end
+  end
 end
