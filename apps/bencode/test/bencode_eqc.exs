@@ -45,9 +45,7 @@ defmodule BencodeEQC do
   property "random nested data structures" do
     structure =
       frequency(
-        [{1, utf8},
-         {1, int},
-         {1, list(
+        [{1, list(
              frequency(
                [{1, utf8},
                 {1, int},
