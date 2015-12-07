@@ -49,7 +49,7 @@ defmodule Tracker.PlugTest do
       |> Map.delete(:ip)
 
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
 
     refute response["failure_reason"]
     assert response["peers"] == []
@@ -69,7 +69,7 @@ defmodule Tracker.PlugTest do
       |> Map.delete(:ip)
 
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
 
     refute response["failure_reason"]
     assert is_number(response["interval"])
@@ -88,7 +88,7 @@ defmodule Tracker.PlugTest do
       |> Map.from_struct
 
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
 
     assert response["failure_reason"]
     refute response["peers"] == []
@@ -134,7 +134,7 @@ defmodule Tracker.PlugTest do
         info_hash: info_hash}
       |> Map.from_struct
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
 
     # at this point the peer is incomplete
     assert Statistics.get(info_hash) == %Statistics{downloaded: 0, complete: 0, incomplete: 1}
@@ -157,14 +157,14 @@ defmodule Tracker.PlugTest do
         info_hash: info_hash}
       |> Map.from_struct
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
 
     refute response["failure_reason"]
     assert response["trackerid"]
 
     request = %{request | downloaded: 700, trackerid: response["trackerid"]} |> Map.delete(:event)
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
     refute response["failure_reason"]
   end
 
@@ -179,14 +179,14 @@ defmodule Tracker.PlugTest do
         info_hash: "aaaaaaaaaaaaaaaaaaaa"}
       |> Map.from_struct
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
     refute response["failure_reason"]
     assert response["trackerid"]
 
     # make a new request, but do not specify a trackerid
     request = %{request | event: "completed", downloaded: 700}
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
     assert response["failure_reason"]
   end
 
@@ -213,7 +213,7 @@ defmodule Tracker.PlugTest do
         info_hash: info_hash}
       |> Map.from_struct
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
     refute response["failure_reason"]
     expected =
       %{"peer_id" => peer_id,
@@ -245,7 +245,7 @@ defmodule Tracker.PlugTest do
         compact: 1}
       |> Map.from_struct
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
     refute response["failure_reason"]
     assert response["peers"] == <<127, 0, 0, 1, 48, 53>>
   end
@@ -272,7 +272,7 @@ defmodule Tracker.PlugTest do
         info_hash: info_hash}
       |> Map.from_struct
     conn = conn(:get, "/announce", request) |> TestTracker.call([])
-    {:ok, response, _} = Bencode.decode(conn.resp_body)
+    {:ok, response} = Bencode.decode(conn.resp_body)
     assert response["incomplete"] == 2
     assert response["complete"] == 0
   end
