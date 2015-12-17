@@ -31,22 +31,22 @@ defmodule Tracker.Plug do
     do: conn
 
   #=ERROR RESPONSES=====================================================
-  @error_invalid_request_data Bencode.encode(%{
+  @error_invalid_request_data Bencode.encode!(%{
     failure_reason: "Please provide valid announce data"
   })
-  @error_info_hash_not_tracked_by_server Bencode.encode(%{
+  @error_info_hash_not_tracked_by_server Bencode.encode!(%{
     failure_reason: "The given info_hash is not tracked by this server"
   })
-  @error_failure_registering_peer Bencode.encode(%{
+  @error_failure_registering_peer Bencode.encode!(%{
     failure_reason: "Could not create peer"
   })
-  @error_trackerid_must_not_be_set_on_first_announce Bencode.encode(%{
+  @error_trackerid_must_not_be_set_on_first_announce Bencode.encode!(%{
     failure_reason: "Tracker id must not be set when announcing with started event"
   })
-  @error_unknown_peer Bencode.encode(%{
+  @error_unknown_peer Bencode.encode!(%{
     failure_reason: "The given peer is unknown to this server"
   })
-  @error_no_trackerid_specified Bencode.encode(%{
+  @error_no_trackerid_specified Bencode.encode!(%{
     failure_reason: "A trackerid should always be specified unless event is set to started"
   })
 
@@ -101,13 +101,19 @@ defmodule Tracker.Plug do
         # send numwant (or 35) peers back
         peer_list = Announce.announce(info_hash, trackerid, announce)
         statistics = Statistics.get(info_hash)
-        response =
+        response_data =
           %{peers: peer_list,
             trackerid: trackerid,
             complete: statistics.complete,
             incomplete: statistics.incomplete,
             interval: @default_interval}
-        send_resp(conn, 201, Bencode.encode(response))
+        case Bencode.encode(response_data) do
+          {:ok, response} ->
+            send_resp(conn, 201, response)
+
+          {:error, _reason} ->
+            send_resp(conn, 500, Bencode.encode!(%{"failure reason" => "Could not bencode response"}))
+        end
 
       _ ->
         send_resp(conn, 500, @error_failure_registering_peer)
@@ -125,42 +131,58 @@ defmodule Tracker.Plug do
   defp handle_announce(conn, pid, %{"event" => "stopped"} = announce) do
     Tracker.Peer.announce(pid, announce)
     statistics = Statistics.get(announce["info_hash"])
-    response =
+    response_data =
       %{peers: [], # send zero peers back
         trackerid: announce["trackerid"],
         complete: statistics.complete,
         incomplete: statistics.incomplete,
         interval: @default_interval}
+    case Bencode.encode(response_data) do
+      {:ok, response} ->
+        send_resp(conn, 200, response)
 
-    send_resp(conn, 200, Bencode.encode(response))
+      {:error, _reason} ->
+        send_resp(conn, 500, Bencode.encode!(%{"failure reason" => "Could not bencode response"}))
+    end
   end
 
   defp handle_announce(conn, _pid, %{"event" => "completed", "info_hash" => info_hash, "trackerid" => trackerid} = announce) do
     # send a list of 35-50 (or numwant) peers (without seeders!) to the peer
     peer_list = Announce.announce(info_hash, trackerid, announce)
     statistics = Statistics.get(announce["info_hash"])
-    response =
+    response_data =
       %{peers: peer_list,
         trackerid: announce["trackerid"],
         complete: statistics.complete,
         incomplete: statistics.incomplete,
         interval: @default_interval}
+    case Bencode.encode(response_data) do
+      {:ok, response} ->
+        send_resp(conn, 200, response)
 
-    send_resp(conn, 200, Bencode.encode(response))
+      {:error, _reason} ->
+        send_resp(conn, 500, Bencode.encode!(%{"failure reason" => "Could not bencode response"}))
+    end
   end
 
   defp handle_announce(conn, _pid, %{"info_hash" => info_hash, "trackerid" => trackerid} = announce) do
     peer_list = Announce.announce(info_hash, trackerid, announce)
     statistics = Statistics.get(info_hash)
     # send a list of peers back
-    response =
+    response_data =
       %{peers: peer_list,
         trackerid: trackerid,
         complete: statistics.complete,
         incomplete: statistics.incomplete,
         interval: @default_interval}
+    case Bencode.encode(response_data) do
+      {:ok, response} ->
+        send_resp(conn, 200, response)
 
-    send_resp(conn, 200, Bencode.encode(response))
+      {:error, _reason} ->
+        send_resp(conn, 500, Bencode.encode!(%{"failure reason" => "Could not bencode response"}))
+    end
+
   end
 
   #=SCRAPE =============================================================
@@ -172,8 +194,14 @@ defmodule Tracker.Plug do
       :gproc.select([{match, query_builder(info_hashes, :'$1'), result_format}])
       |> Stream.map(&extract_info_hash_and_value/1)
       |> Enum.into(%{})
+    case Bencode.encode(%{files: files}) do
+      {:ok, response} ->
+        send_resp(conn, 200, response)
 
-    send_resp conn, 200, Bencode.encode(%{files: files})
+      {:error, _reason} ->
+        send_resp(conn, 500, Bencode.encode!(%{"failure reason" => "Could not bencode response"}))
+    end
+
   end
   # handle scrape helpers
   defp extract_info_hash_and_value({info_hash, :undefined}),

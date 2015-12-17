@@ -25,6 +25,6 @@ defmodule Tracker.Mixfile do
      {:plug, "~> 1.0"},
      {:gproc, "~> 0.5.0"},
      {:uuid, "~> 1.0.1"},
-     {:bencode, "~> 0.1.1"}]
+     {:bencode, "~> 0.2.0"}]
   end
 end
