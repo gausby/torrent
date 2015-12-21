@@ -1,3 +1,3 @@
 # Swarm
 
-A torrent swarm implementation in Elixir.
+A work in progress torrent swarm implementation in Elixir.

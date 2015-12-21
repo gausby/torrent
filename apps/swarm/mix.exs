@@ -18,7 +18,7 @@ defmodule Swarm.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger],
+    [applications: [:logger, :gproc],
      mod: {Swarm, []}]
   end
 
@@ -36,6 +36,6 @@ defmodule Swarm.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [{:gproc, "~> 0.5.0"}]
   end
 end
