@@ -54,9 +54,15 @@ defmodule Swarm.Acceptor.Peer do
     )
   end
 
-  defp check_info_hash(_info_hash),
-    # todo, check if we have a swarm controller registered with the given info_hash
-    do: :ok
+  defp check_info_hash(info_hash) do
+    case :gproc.where({:n, :l, {Swarm.Peers, info_hash}}) do
+      :undefined ->
+        {:error, "unknown info_hash"}
+
+      _pid ->
+        :ok
+    end
+  end
 
   defp check_peer_id(same, same),
     do: {:error, "connecting to self"}

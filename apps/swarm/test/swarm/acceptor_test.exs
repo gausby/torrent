@@ -4,7 +4,7 @@ defmodule Swarm.AcceptorTest do
   doctest Swarm.Acceptor
 
   @info_hash "xxxxxxxxxxxxxxxxxxxx"
-  test "the truth" do
+  test "establish connection if remote ask for a known info_hash" do
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
 
     TCP.send(connection, [
@@ -13,5 +13,16 @@ defmodule Swarm.AcceptorTest do
         ])
 
     assert {:ok, [19|_msg]} = TCP.recv(connection, 68)
+  end
+
+  test "cut connection if remote ask for an unknown info_hash" do
+    {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
+
+    TCP.send(connection, [
+          19, "BitTorrent Protocol", 0, 0, 0, 0, 0, 0, 0, 0,
+          "does_not_exist_here_", "xxxxxxxxxxxxxxxxxxxx"
+        ])
+
+    assert {:error, :closed} = TCP.recv(connection, 68)
   end
 end
