@@ -75,4 +75,13 @@ defmodule BitfieldTest do
     expected = Bitfield.new(16, <<42, 42>>)
     assert expected == Bitfield.intersection(bitfield1, bitfield2)
   end
+
+  test "disjoint" do
+    bitfield1 = Bitfield.new(16, <<0, 255>>)
+    bitfield2 = Bitfield.new(16, <<255, 0>>)
+    bitfield3 = Bitfield.new(16, <<128, 128>>)
+
+    assert Bitfield.disjoint?(bitfield1, bitfield2) == true
+    assert Bitfield.disjoint?(bitfield1, bitfield3) == false
+  end
 end
