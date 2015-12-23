@@ -84,4 +84,13 @@ defmodule BitfieldTest do
     assert Bitfield.disjoint?(bitfield1, bitfield2) == true
     assert Bitfield.disjoint?(bitfield1, bitfield3) == false
   end
+
+  test "equal" do
+    bitfield1 = Bitfield.new(16, <<0, 255>>)
+    bitfield2 = Bitfield.new(16, <<255, 0>>)
+    bitfield3 = Bitfield.new(16, <<0, 255>>)
+
+    assert Bitfield.equal?(bitfield1, bitfield2) == false
+    assert Bitfield.equal?(bitfield1, bitfield3) == true
+  end
 end
