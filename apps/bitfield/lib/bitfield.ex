@@ -51,6 +51,11 @@ defmodule Bitfield do
     %__MODULE__{state|pieces: MapSet.put(pieces, piece)}
   end
 
+  def remove(%__MODULE__{pieces: pieces, size: size} = state, piece)
+  when is_number(piece) and piece < size do
+    %__MODULE__{state|pieces: MapSet.delete(pieces, piece)}
+  end
+
   def member?(%__MODULE__{pieces: pieces, size: size}, piece_number) when piece_number < size do
     MapSet.member?(pieces, piece_number)
   end

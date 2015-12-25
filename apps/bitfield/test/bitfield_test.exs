@@ -68,6 +68,23 @@ defmodule BitfieldTest do
     assert Bitfield.to_binary(result) == expected
   end
 
+  test "removing bits" do
+    bitfield =
+      Bitfield.new(8)
+      |> Bitfield.set(2)
+      |> Bitfield.remove(2)
+    assert Bitfield.to_binary(bitfield) == <<0>>
+
+    bitfield =
+      Bitfield.new(8)
+      |> Bitfield.set(0)
+      |> Bitfield.set(2)
+      |> Bitfield.set(4)
+      |> Bitfield.set(6) # 10101010
+      |> Bitfield.remove(0) # 101010
+    assert Bitfield.to_binary(bitfield) == <<42>>
+  end
+
   test "intersection" do
     bitfield1 = Bitfield.new(16, <<190, 106>>)
     bitfield2 = Bitfield.new(16, <<106, 190>>)
