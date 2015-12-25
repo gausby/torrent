@@ -72,7 +72,7 @@ defmodule BitfieldTest do
     bitfield1 = Bitfield.new(16, <<190, 106>>)
     bitfield2 = Bitfield.new(16, <<106, 190>>)
 
-    expected = Bitfield.new(16, <<42, 42>>)
+    expected = MapSet.new([2, 4, 6, 10, 12, 14])
     assert expected == Bitfield.intersection(bitfield1, bitfield2)
   end
 

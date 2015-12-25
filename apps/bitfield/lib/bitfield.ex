@@ -64,7 +64,7 @@ defmodule Bitfield do
   end
 
   def intersection(%__MODULE__{size: size, pieces: a}, %__MODULE__{size: size, pieces: b}) do
-    %__MODULE__{size: size, pieces: MapSet.intersection(a, b)}
+    MapSet.intersection(a, b)
   end
 
   def to_binary(%__MODULE__{size: size, pieces: pieces}) when size > 0 do
