@@ -9,7 +9,7 @@ defmodule BitfieldTest do
   end
 
   test "creating a new bitfield with data" do
-    bitfield = Bitfield.new(32, <<128, 64, 32, 48>>)
+    bitfield = Bitfield.new(<<128, 64, 32, 48>>)
 
     expected = MapSet.new([0, 9, 18, 26, 27])
     assert %Bitfield{size: 32, pieces: ^expected} = bitfield
@@ -17,32 +17,32 @@ defmodule BitfieldTest do
 
   test "turning a bitfield into a binary" do
     result =
-      Bitfield.new(24, <<74, 0, 0>>)
+      Bitfield.new(<<74, 0, 0>>)
       |> Bitfield.to_binary
     expected = <<74, 0, 0>>
     assert result == expected
 
     result =
-      Bitfield.new(24, <<0, 74, 0>>)
+      Bitfield.new(<<0, 74, 0>>)
       |> Bitfield.to_binary
     expected = <<0, 74, 0>>
     assert result == expected
 
     result =
-      Bitfield.new(24, <<0, 0, 74>>)
+      Bitfield.new(<<0, 0, 74>>)
       |> Bitfield.to_binary
     expected = <<0, 0, 74>>
     assert result == expected
 
     result =
-      Bitfield.new(24, <<1, 255, 74>>)
+      Bitfield.new(<<1, 255, 74>>)
       |> Bitfield.to_binary
     expected = <<1, 255, 74>>
     assert result == expected
   end
 
   test "getting bits" do
-    bitfield = Bitfield.new(32, <<128, 129, 255, 1>>)
+    bitfield = Bitfield.new(<<128, 129, 255, 1>>)
 
     assert Bitfield.member?(bitfield, 0) == true
     assert Bitfield.member?(bitfield, 1) == false
@@ -86,67 +86,67 @@ defmodule BitfieldTest do
   end
 
   test "counting the available pieces in a bitfield" do
-    assert Bitfield.has(Bitfield.new(8, <<255>>)) == 8
-    assert Bitfield.has(Bitfield.new(8, <<170>>)) == 4
-    assert Bitfield.has(Bitfield.new(8, <<42>>)) == 3
-    assert Bitfield.has(Bitfield.new(8, <<10>>)) == 2
-    assert Bitfield.has(Bitfield.new(8, <<1>>)) == 1
-    assert Bitfield.has(Bitfield.new(8, <<0>>)) == 0
+    assert Bitfield.has(Bitfield.new(<<255>>)) == 8
+    assert Bitfield.has(Bitfield.new(<<170>>)) == 4
+    assert Bitfield.has(Bitfield.new(<<42>>)) == 3
+    assert Bitfield.has(Bitfield.new(<<10>>)) == 2
+    assert Bitfield.has(Bitfield.new(<<1>>)) == 1
+    assert Bitfield.has(Bitfield.new(<<0>>)) == 0
 
-    assert Bitfield.has(Bitfield.new(24, <<1,1,1>>)) == 3
-    assert Bitfield.has(Bitfield.new(24, <<10,10,10>>)) == 6
-    assert Bitfield.has(Bitfield.new(24, <<170,170,170>>)) == 12
+    assert Bitfield.has(Bitfield.new(<<1,1,1>>)) == 3
+    assert Bitfield.has(Bitfield.new(<<10,10,10>>)) == 6
+    assert Bitfield.has(Bitfield.new(<<170,170,170>>)) == 12
   end
 
   test "has all" do
-    assert Bitfield.has_all?(Bitfield.new(8, <<255>>)) == true
-    assert Bitfield.has_all?(Bitfield.new(8, <<254>>)) == false
-    assert Bitfield.has_all?(Bitfield.new(16, <<255, 1>>)) == false
-    assert Bitfield.has_all?(Bitfield.new(16, <<255, 255>>)) == true
+    assert Bitfield.has_all?(Bitfield.new(<<255>>)) == true
+    assert Bitfield.has_all?(Bitfield.new(<<254>>)) == false
+    assert Bitfield.has_all?(Bitfield.new(<<255, 1>>)) == false
+    assert Bitfield.has_all?(Bitfield.new(<<255, 255>>)) == true
   end
 
   test "get available pieces for a bit-field" do
-    assert Bitfield.pieces(Bitfield.new(16, <<128, 128>>)) == [0, 8]
-    assert Bitfield.pieces(Bitfield.new(16, <<255, 255>>)) == Enum.to_list(0..15)
+    assert Bitfield.pieces(Bitfield.new(<<128, 128>>)) == [0, 8]
+    assert Bitfield.pieces(Bitfield.new(<<255, 255>>)) == Enum.to_list(0..15)
   end
 
   test "intersection" do
-    bitfield1 = Bitfield.new(16, <<190, 106>>)
-    bitfield2 = Bitfield.new(16, <<106, 190>>)
+    bitfield1 = Bitfield.new(<<190, 106>>)
+    bitfield2 = Bitfield.new(<<106, 190>>)
 
     expected = MapSet.new([2, 4, 6, 10, 12, 14])
     assert expected == Bitfield.intersection(bitfield1, bitfield2)
   end
 
   test "disjoint" do
-    bitfield1 = Bitfield.new(16, <<0, 255>>)
-    bitfield2 = Bitfield.new(16, <<255, 0>>)
-    bitfield3 = Bitfield.new(16, <<128, 128>>)
+    bitfield1 = Bitfield.new(<<0, 255>>)
+    bitfield2 = Bitfield.new(<<255, 0>>)
+    bitfield3 = Bitfield.new(<<128, 128>>)
 
     assert Bitfield.disjoint?(bitfield1, bitfield2) == true
     assert Bitfield.disjoint?(bitfield1, bitfield3) == false
   end
 
   test "equal" do
-    bitfield1 = Bitfield.new(16, <<0, 255>>)
-    bitfield2 = Bitfield.new(16, <<255, 0>>)
-    bitfield3 = Bitfield.new(16, <<0, 255>>)
+    bitfield1 = Bitfield.new(<<0, 255>>)
+    bitfield2 = Bitfield.new(<<255, 0>>)
+    bitfield3 = Bitfield.new(<<0, 255>>)
 
     assert Bitfield.equal?(bitfield1, bitfield2) == false
     assert Bitfield.equal?(bitfield1, bitfield3) == true
   end
 
   test "union" do
-    bitfield1 = Bitfield.new(16, <<0, 255>>)
-    bitfield2 = Bitfield.new(16, <<255, 0>>)
+    bitfield1 = Bitfield.new(<<0, 255>>)
+    bitfield2 = Bitfield.new(<<255, 0>>)
     assert Bitfield.union(bitfield1, bitfield2) == MapSet.new(0..15)
 
-    bitfield1 = Bitfield.new(16, <<255, 0>>)
-    bitfield2 = Bitfield.new(16, <<255, 0>>)
+    bitfield1 = Bitfield.new(<<255, 0>>)
+    bitfield2 = Bitfield.new(<<255, 0>>)
     assert Bitfield.union(bitfield1, bitfield2) == MapSet.new(0..7)
 
-    bitfield1 = Bitfield.new(8, <<170, 0>>)
-    bitfield2 = Bitfield.new(8, <<85, 0>>)
+    bitfield1 = Bitfield.new(<<170, 0>>)
+    bitfield2 = Bitfield.new(<<85, 0>>)
     assert Bitfield.union(bitfield1, bitfield2) == MapSet.new(0..7)
   end
 end

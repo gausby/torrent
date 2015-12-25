@@ -1,7 +1,8 @@
 defmodule Bitfield do
   defstruct(
     size: 0,
-    pieces: MapSet.new
+    pieces: MapSet.new,
+    info_hash: nil
   )
 
   @pad [0, 0, 0, 0, 0, 0, 0 ,0]
@@ -14,18 +15,19 @@ defmodule Bitfield do
   end
 
   # ====================================================================
-  def new(size) do
-    %__MODULE__{size: size}
+  def new(content, info_hash \\ nil)
+  def new(content_size, info_hash) when is_number(content_size) do
+    %__MODULE__{info_hash: info_hash, size: content_size, pieces: MapSet.new}
   end
 
-  def new(size, content) when is_binary(content) do
+  def new(content, info_hash) when is_binary(content) do
     pieces = reduce_bits(content, fn
       {index, 1}, acc ->
         [index|acc]
       _, acc ->
         acc
     end)
-    %__MODULE__{size: size, pieces: MapSet.new(pieces)}
+    %__MODULE__{info_hash: info_hash, size: bit_size(content), pieces: MapSet.new(pieces)}
   end
 
   @doc """
