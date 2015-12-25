@@ -72,6 +72,10 @@ defmodule Bitfield do
     MapSet.intersection(a, b)
   end
 
+  def union(%__MODULE__{pieces: a, size: size}, %__MODULE__{pieces: b, size: size}) do
+    MapSet.union(a, b)
+  end
+
   def has(%__MODULE__{pieces: pieces}) do
     MapSet.size(pieces)
   end

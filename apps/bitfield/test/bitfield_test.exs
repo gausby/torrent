@@ -135,4 +135,18 @@ defmodule BitfieldTest do
     assert Bitfield.equal?(bitfield1, bitfield2) == false
     assert Bitfield.equal?(bitfield1, bitfield3) == true
   end
+
+  test "union" do
+    bitfield1 = Bitfield.new(16, <<0, 255>>)
+    bitfield2 = Bitfield.new(16, <<255, 0>>)
+    assert Bitfield.union(bitfield1, bitfield2) == MapSet.new(0..15)
+
+    bitfield1 = Bitfield.new(16, <<255, 0>>)
+    bitfield2 = Bitfield.new(16, <<255, 0>>)
+    assert Bitfield.union(bitfield1, bitfield2) == MapSet.new(0..7)
+
+    bitfield1 = Bitfield.new(8, <<170, 0>>)
+    bitfield2 = Bitfield.new(8, <<85, 0>>)
+    assert Bitfield.union(bitfield1, bitfield2) == MapSet.new(0..7)
+  end
 end
