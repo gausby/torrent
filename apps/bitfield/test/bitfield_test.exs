@@ -105,6 +105,11 @@ defmodule BitfieldTest do
     assert Bitfield.has_all?(Bitfield.new(16, <<255, 255>>)) == true
   end
 
+  test "get available pieces for a bit-field" do
+    assert Bitfield.pieces(Bitfield.new(16, <<128, 128>>)) == [0, 8]
+    assert Bitfield.pieces(Bitfield.new(16, <<255, 255>>)) == Enum.to_list(0..15)
+  end
+
   test "intersection" do
     bitfield1 = Bitfield.new(16, <<190, 106>>)
     bitfield2 = Bitfield.new(16, <<106, 190>>)

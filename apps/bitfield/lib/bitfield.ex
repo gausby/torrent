@@ -80,6 +80,10 @@ defmodule Bitfield do
     MapSet.size(pieces) == size
   end
 
+  def pieces(%__MODULE__{pieces: pieces}) do
+    MapSet.to_list(pieces)
+  end
+
   def to_binary(%__MODULE__{size: size, pieces: pieces}) when size > 0 do
     have = MapSet.to_list(pieces)
     bit_range = 0..(size - 1)
