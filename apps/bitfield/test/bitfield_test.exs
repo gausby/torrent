@@ -85,6 +85,26 @@ defmodule BitfieldTest do
     assert Bitfield.to_binary(bitfield) == <<42>>
   end
 
+  test "counting the available pieces in a bitfield" do
+    assert Bitfield.has(Bitfield.new(8, <<255>>)) == 8
+    assert Bitfield.has(Bitfield.new(8, <<170>>)) == 4
+    assert Bitfield.has(Bitfield.new(8, <<42>>)) == 3
+    assert Bitfield.has(Bitfield.new(8, <<10>>)) == 2
+    assert Bitfield.has(Bitfield.new(8, <<1>>)) == 1
+    assert Bitfield.has(Bitfield.new(8, <<0>>)) == 0
+
+    assert Bitfield.has(Bitfield.new(24, <<1,1,1>>)) == 3
+    assert Bitfield.has(Bitfield.new(24, <<10,10,10>>)) == 6
+    assert Bitfield.has(Bitfield.new(24, <<170,170,170>>)) == 12
+  end
+
+  test "has all" do
+    assert Bitfield.has_all?(Bitfield.new(8, <<255>>)) == true
+    assert Bitfield.has_all?(Bitfield.new(8, <<254>>)) == false
+    assert Bitfield.has_all?(Bitfield.new(16, <<255, 1>>)) == false
+    assert Bitfield.has_all?(Bitfield.new(16, <<255, 255>>)) == true
+  end
+
   test "intersection" do
     bitfield1 = Bitfield.new(16, <<190, 106>>)
     bitfield2 = Bitfield.new(16, <<106, 190>>)

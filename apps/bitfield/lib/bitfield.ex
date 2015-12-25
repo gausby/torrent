@@ -72,6 +72,14 @@ defmodule Bitfield do
     MapSet.intersection(a, b)
   end
 
+  def has(%__MODULE__{pieces: pieces}) do
+    MapSet.size(pieces)
+  end
+
+  def has_all?(%__MODULE__{pieces: pieces, size: size}) do
+    MapSet.size(pieces) == size
+  end
+
   def to_binary(%__MODULE__{size: size, pieces: pieces}) when size > 0 do
     have = MapSet.to_list(pieces)
     bit_range = 0..(size - 1)
