@@ -66,6 +66,10 @@ defmodule Bitfield do
     MapSet.equal?(a, b)
   end
 
+  def subset?(%__MODULE__{pieces: a, size: size}, %__MODULE__{pieces: b, size: size}) do
+    MapSet.subset?(a, b)
+  end
+
   def disjoint?(%__MODULE__{size: size, pieces: a}, %__MODULE__{size: size, pieces: b}) do
     MapSet.disjoint?(a, b)
   end

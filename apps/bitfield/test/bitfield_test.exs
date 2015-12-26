@@ -127,6 +127,14 @@ defmodule BitfieldTest do
     assert Bitfield.disjoint?(bitfield1, bitfield3) == false
   end
 
+  test "subset" do
+    bitfield1 = Bitfield.new(<<128>>)
+    bitfield2 = Bitfield.new(<<255>>)
+
+    assert Bitfield.subset?(bitfield1, bitfield2) == true
+    assert Bitfield.subset?(bitfield2, bitfield1) == false
+  end
+
   test "equal" do
     bitfield1 = Bitfield.new(<<0, 255>>)
     bitfield2 = Bitfield.new(<<255, 0>>)
