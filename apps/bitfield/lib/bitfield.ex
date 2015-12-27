@@ -30,15 +30,13 @@ defmodule Bitfield do
     %__MODULE__{info_hash: info_hash, size: bit_size(content), pieces: MapSet.new(pieces)}
   end
 
-  @doc """
-  Reduce the bits in the bytes in the bit-field
-  """
-  def reduce_bits(bytes, fun),
+  # Reduce the bits in the bytes in the bit-field
+  defp reduce_bits(bytes, fun),
     do: do_reduce_bits(bytes, 0, [], fun)
 
-  def do_reduce_bits(<<>>, _index, acc, _fun),
+  defp do_reduce_bits(<<>>, _index, acc, _fun),
     do: Enum.reverse acc
-  def do_reduce_bits(<<byte::integer, rest::binary>>, index, acc, fun) do
+  defp do_reduce_bits(<<byte::integer, rest::binary>>, index, acc, fun) do
     {index, acc} =
       number_to_padded_bits(byte)
       |> Enum.reduce({index, acc}, fn bit, {index, acc} ->
