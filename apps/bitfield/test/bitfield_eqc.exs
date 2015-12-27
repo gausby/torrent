@@ -54,7 +54,7 @@ defmodule BitfieldEqc do
     end
   end
 
-  property "disjoint" do
+  property "a disjoint set should be disjoint" do
     forall {a, b, c, d} <- {binary(10), binary(10), binary(10), binary(10)} do
       implies a != b && c != d do
         empty = <<0::size(80)>>
@@ -64,7 +64,9 @@ defmodule BitfieldEqc do
         ensure Bitfield.disjoint?(set_a, set_b) == true
       end
     end
+  end
 
+  property "two non-disjoint set should not be disjoint" do
     forall {a, b, c, d} <- {binary(10), binary(10), binary(10), binary(10)} do
       implies a != b && c != d do
         empty = <<0::size(80)>>
