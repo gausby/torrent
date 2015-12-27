@@ -1,4 +1,5 @@
-%{"bencode": {:hex, :bencode, "0.2.0"},
+%{"benchfella": {:hex, :benchfella, "0.3.1"},
+  "bencode": {:hex, :bencode, "0.2.0"},
   "connection": {:hex, :connection, "1.0.2"},
   "cowboy": {:hex, :cowboy, "1.0.3"},
   "cowlib": {:hex, :cowlib, "1.0.1"},

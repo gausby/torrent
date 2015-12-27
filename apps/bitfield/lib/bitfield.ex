@@ -5,15 +5,6 @@ defmodule Bitfield do
     info_hash: nil
   )
 
-  @pad [0, 0, 0, 0, 0, 0, 0 ,0]
-  defp pad(digits) do
-    Enum.take(@pad, 8 - length digits) ++ digits
-  end
-
-  defp number_to_padded_bits(n) when is_number(n) do
-    Integer.digits(n, 2) |> pad
-  end
-
   # ====================================================================
   def new(content, info_hash \\ nil)
   def new(content_size, info_hash) when is_number(content_size) do
@@ -44,6 +35,12 @@ defmodule Bitfield do
          end)
 
     do_reduce_bits(rest, index, acc, fun)
+  end
+
+  @pad [0, 0, 0, 0, 0, 0, 0 ,0]
+  defp number_to_padded_bits(n) do
+    digits = Integer.digits(n, 2)
+    Enum.take(@pad, 8 - length digits) ++ digits
   end
 
   def set(%__MODULE__{pieces: pieces, size: size} = state, piece)

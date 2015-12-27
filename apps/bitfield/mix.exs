@@ -20,6 +20,7 @@ defmodule Bitfield.Mixfile do
   end
 
   defp deps do
-    [{:eqc_ex, "~> 1.2.4"}]
+    [{:eqc_ex, "~> 1.2.4"},
+     {:benchfella, "~> 0.3.1"}]
   end
 end
