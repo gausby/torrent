@@ -5,7 +5,6 @@ defmodule Bitfield do
     info_hash: nil
   )
 
-  # ====================================================================
   def new(content, info_hash \\ nil)
   def new(content_size, info_hash) when is_number(content_size) do
     %__MODULE__{info_hash: info_hash, size: content_size, pieces: MapSet.new}
@@ -75,6 +74,21 @@ defmodule Bitfield do
 
   def union(%__MODULE__{pieces: a, size: size}, %__MODULE__{pieces: b, size: size}) do
     MapSet.union(a, b)
+  end
+
+  @doc """
+  Take two piece sets, a and b, who both has the same `info_hash`, and return a MapSet
+  containing the pieces in *a* without the pieces contained in *b*.
+
+      iex> Bitfield.difference(Bitfield.new(<<170>>), Bitfield.new(<<85>>))
+      #MapSet<[0, 2, 4, 6]>
+
+      iex> Bitfield.difference(Bitfield.new(<<85>>), Bitfield.new(<<170>>))
+      #MapSet<[1, 3, 5, 7]>
+
+  """
+  def difference(%__MODULE__{info_hash: info_hash, pieces: a}, %__MODULE__{info_hash: info_hash, pieces: b}) do
+    MapSet.difference(a, b)
   end
 
   def has(%__MODULE__{pieces: pieces}) do

@@ -118,6 +118,28 @@ defmodule BitfieldTest do
     assert expected == Bitfield.intersection(bitfield1, bitfield2)
   end
 
+  test "difference" do
+    empty = MapSet.new()
+
+    bitfield1 = Bitfield.new(<<255>>)
+    bitfield2 = Bitfield.new(<<0>>)
+    expected = MapSet.new(0..7)
+    assert expected ==  Bitfield.difference(bitfield1, bitfield2)
+
+    bitfield1 = Bitfield.new(<<0>>)
+    bitfield2 = Bitfield.new(<<255>>)
+    assert Bitfield.difference(bitfield1, bitfield2) == empty
+
+    bitfield1 = Bitfield.new(<<170>>)
+    bitfield2 = Bitfield.new(<<170>>)
+    assert Bitfield.difference(bitfield1, bitfield2) == empty
+
+    bitfield1 = Bitfield.new(<<170>>)
+    bitfield2 = Bitfield.new(<<85>>)
+    expected = MapSet.new([0, 2, 4, 6])
+    assert expected == Bitfield.difference(bitfield1, bitfield2)
+  end
+
   test "disjoint" do
     bitfield1 = Bitfield.new(<<0, 255>>)
     bitfield2 = Bitfield.new(<<255, 0>>)
