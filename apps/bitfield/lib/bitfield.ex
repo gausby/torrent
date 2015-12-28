@@ -29,7 +29,7 @@ defmodule Bitfield do
   anything, and it defaults to `nil`.
   """
   def new(content, info_hash \\ nil)
-  def new(content_size, info_hash) when is_number(content_size) do
+  def new(content_size, info_hash) when is_number(content_size) and content_size > 0 do
     %__MODULE__{info_hash: info_hash, size: content_size, pieces: MapSet.new}
   end
   def new(content, info_hash) when is_binary(content) do
