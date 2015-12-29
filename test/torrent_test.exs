@@ -1,6 +1,6 @@
-defmodule Swarm.InfoTest do
+defmodule TorrentTest do
   use ExUnit.Case
-  doctest Swarm.Info
+  doctest Torrent
 
   test "the truth" do
     assert 1 + 1 == 2
