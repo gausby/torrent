@@ -23,7 +23,7 @@ defmodule Bitfield do
 
   The size will be taken from the input when a piece set is created with data:
 
-      iex> Bitfield.new(<<128, 1>>) |> Bitfield.pieces
+      iex> Bitfield.new(<<128, 1>>) |> Bitfield.to_list
       [0, 15]
 
   The piece set can be given an `info_hash` as the second argument, it can be
@@ -71,7 +71,7 @@ defmodule Bitfield do
   set and the updated piece set will get returned:
 
       iex> set = Bitfield.new(<<0b10101000>>)
-      iex> Bitfield.set(set, 6) |> Bitfield.pieces
+      iex> Bitfield.set(set, 6) |> Bitfield.to_list
       [0, 2, 4, 6]
 
   """
@@ -86,7 +86,7 @@ defmodule Bitfield do
   set and the updated piece set will get returned:
 
       iex> set = Bitfield.new(<<0b10101000>>)
-      iex> Bitfield.remove(set, 2) |> Bitfield.pieces
+      iex> Bitfield.remove(set, 2) |> Bitfield.to_list
       [0, 4]
 
   """
@@ -240,14 +240,14 @@ defmodule Bitfield do
   end
 
   @doc """
-  Take a piece set and return the available pieces in a list.
+  Take a piece set and return the available pieces as a list.
 
-      iex> Bitfield.new(<<0b10011010>>) |> Bitfield.pieces
+      iex> Bitfield.new(<<0b10011010>>) |> Bitfield.to_list
       [0, 3, 4, 6]
 
   """
-  @spec pieces(t) :: [non_neg_integer]
-  def pieces(%__MODULE__{pieces: pieces}) do
+  @spec to_list(t) :: [non_neg_integer]
+  def to_list(%__MODULE__{pieces: pieces}) do
     MapSet.to_list(pieces)
   end
 

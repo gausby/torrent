@@ -32,7 +32,7 @@ defmodule BitfieldEqc do
         set_b = Bitfield.new(empty <> b)
         result =
           Bitfield.new(a <> b)
-          |> Bitfield.pieces
+          |> Bitfield.to_list
 
         ensure MapSet.to_list(Bitfield.union(set_a, set_b)) == result
       end
@@ -47,7 +47,7 @@ defmodule BitfieldEqc do
         set_b = Bitfield.new(empty <> b <> c)
         result =
           Bitfield.new(empty <> empty <> c)
-          |> Bitfield.pieces
+          |> Bitfield.to_list
 
         ensure MapSet.to_list(Bitfield.intersection(set_a, set_b)) == result
       end
