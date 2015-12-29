@@ -5,7 +5,7 @@ defmodule Bitfield do
   Its main usecase is for BitTorrent implementations.
   """
 
-  @opaque t :: %__MODULE__{size: pos_integer, pieces: MapSet.t, info_hash: any}
+  @opaque t :: %__MODULE__{size: pos_integer, pieces: %MapSet{map: non_neg_integer}, info_hash: any}
   defstruct(
     size: 0,
     pieces: MapSet.new,
