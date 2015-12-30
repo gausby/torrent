@@ -11,11 +11,13 @@ defmodule Torrent.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :gproc],
+     mod: {Torrent, []}]
   end
 
   defp deps do
     [{:bencode, "~> 0.2.0"},
-     {:bit_field_set, "~> 0.0.1"}]
+     {:bit_field_set, "~> 0.0.1"},
+     {:gproc, "~> 0.5.0"}]
   end
 end
