@@ -41,7 +41,7 @@ defmodule Torrent.Acceptor.Peer do
       {:ok, info_hash, peer_id} <- PeerWire.receive_handshake(socket),
       :ok <- integrity_check(%{peer_id: peer_id, ip: ip, port: port, info_hash: info_hash}, state),
       # spawn a process and complete the handshake
-      {:ok, pid} <- Torrent.File.Swarm.start_child(info_hash, {ip, port}),
+      {:ok, _pid} <- Torrent.File.Swarm.start_child(info_hash, {ip, port}),
       :ok <- Torrent.File.Swarm.Peer.forward_socket(info_hash, {ip, port}, socket),
       :ok <- PeerWire.complete_handshake(socket, info_hash, peer_id),
       do: :ok
