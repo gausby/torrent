@@ -4,8 +4,7 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
   alias :gen_tcp, as: TCP
 
   defstruct(
-    socket: nil,
-    state: :initializing
+    socket: nil
   )
   alias Torrent.File.Swarm.Peer.Receiver, as: State
 
@@ -23,12 +22,15 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
     with(
       {ip, port} = peer,
       receiver_pid = :gproc.where(peer_name(info_hash, ip, port)),
-      :ok <- TCP.controlling_process(socket, receiver_pid),
       :ok <- GenServer.call(receiver_pid, {:set_socket, socket}),
-      :ok <- GenServer.call(receiver_pid, :set_readable),
+      :ok <- TCP.controlling_process(socket, receiver_pid),
+      :ok <- set_readable(socket),
       do: :ok
     )
   end
+
+  defp set_readable(socket),
+    do: :inet.setopts(socket, active: :once)
 
   # Server callbacks
   def init(state) do
@@ -39,8 +41,14 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
     {:reply, :ok, %State{state|socket: socket}}
   end
 
-  def handle_call(:set_readable, _from, %State{socket: socket} = state) do
-    :inet.setopts(socket, [active: false])
-    {:reply, :ok, state}
+  def handle_info({:tcp, _port, message}, %State{socket: socket} = state) do
+    IO.inspect PeerWire.decode_message(message)
+    set_readable(socket)
+    {:noreply, state}
+  end
+
+  def handle_info({:tcp_closed, _port}, state) do
+    IO.inspect "closing"
+    {:stop, :normal, state}
   end
 end
