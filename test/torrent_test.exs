@@ -3,6 +3,12 @@ defmodule TorrentTest do
   alias :gen_tcp, as: TCP
   doctest Torrent
 
+  setup_all do
+    :ok = Logger.remove_backend(:console)
+    on_exit(fn -> Logger.add_backend(:console, flush: true) end)
+    :ok
+  end
+
   @info_hash "xxxxxxxxxxxxxxxxxxxx"
   test "establish connection if remote ask for a known info_hash" do
     Torrent.File.Supervisor.add(@info_hash)

@@ -1,5 +1,8 @@
 defmodule Torrent.Acceptor.Peer do
   use GenServer
+
+  require Logger
+
   alias :gen_tcp, as: TCP
 
   defstruct socket: nil, peer_id: nil
@@ -79,6 +82,6 @@ defmodule Torrent.Acceptor.Peer do
     :ok
   end
   defp handle_handshake_result({:error, _reason} = error) do
-    IO.inspect error
+    Logger.info "#{inspect error}"
   end
 end
