@@ -2,6 +2,7 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
   use GenServer
 
   alias :gen_tcp, as: TCP
+  alias __MODULE__, as: State
 
   defstruct(
     state: :awaiting_socket,
@@ -9,7 +10,6 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
     buffer: [],
     remaining: nil
   )
-  alias Torrent.File.Swarm.Peer.Receiver, as: State
 
   #=Client API =========================================================
   def start_link(info_hash, {ip, port}) do

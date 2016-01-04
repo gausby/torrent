@@ -4,9 +4,12 @@ defmodule Torrent.Acceptor.Peer do
   require Logger
 
   alias :gen_tcp, as: TCP
+  alias __MODULE__, as: State
 
-  defstruct socket: nil, peer_id: nil
-  alias Torrent.Acceptor.Peer, as: State
+  defstruct(
+    socket: nil,
+    peer_id: nil
+  )
 
   # Client API
   def start_link(accept_socket, peer_id) do
