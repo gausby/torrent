@@ -28,9 +28,10 @@ defmodule Torrent.File.Swarm.Peer.Transmitter do
   This tells the remote peer that they should not expect any data from us, except for
   an eventual *unchoke*-message.
   """
-  def choke(pid) do
-    GenServer.cast(pid, :choke)
-  end
+  def choke(pid) when is_pid(pid),
+    do: GenServer.cast(pid, :choke)
+  def choke(info_hash, {ip, port}),
+    do: GenServer.cast(via_name(info_hash, ip, port), :choke)
 
   @doc """
   Stop chocking the remote peer.
@@ -38,25 +39,28 @@ defmodule Torrent.File.Swarm.Peer.Transmitter do
   This tells the remote peer that we will stop choking them, and that they can expect
   data coming from our end.
   """
-  def unchoke(pid) do
-    GenServer.cast(pid, :unchoke)
-  end
+  def unchoke(pid) when is_pid(pid),
+    do: GenServer.cast(pid, :unchoke)
+  def unchoke(info_hash, {ip, port}),
+    do: GenServer.cast(via_name(info_hash, ip, port), :unchoke)
 
   @doc """
   Inform the remote peer that we are interested in pieces of data that they currently
   claim to have in their possession.
   """
-  def interested(pid) do
-    GenServer.cast(pid, :interested)
-  end
+  def interested(pid) when is_pid(pid),
+    do: GenServer.cast(pid, :interested)
+  def interested(info_hash, {ip, port}),
+    do: GenServer.cast(via_name(info_hash, ip, port), :interested)
 
   @doc """
   Inform the remote peer that we are not interested in any pieces of data that they
   claim to have in their possession.
   """
-  def not_interested(pid) do
-    GenServer.cast(pid, :not_interested)
-  end
+  def not_interested(pid) when is_pid(pid),
+    do: GenServer.cast(pid, :not_interested)
+  def not_interested(info_hash, {ip, port}),
+    do: GenServer.cast(via_name(info_hash, ip, port), :not_interested)
 
   # Server callbacks
   def init(state) do
