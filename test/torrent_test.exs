@@ -35,25 +35,7 @@ defmodule TorrentTest do
     assert {:error, :closed} = TCP.recv(connection, 68)
   end
 
-  test "establish stuff" do
-    Torrent.File.Supervisor.add(@info_hash)
-    {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
-
-    # perform handshake
-    TCP.send(connection, [
-          19, "BitTorrent Protocol", 0, 0, 0, 0, 0, 0, 0, 0,
-          @info_hash, "yxxxxxxxxxxxxxxxxxxx"
-        ])
-    {:ok, _} = TCP.recv(connection, 68)
-
-    # send bitfield
-    bitfield = <<255, 212, 1, 42>>
-    size = byte_size(bitfield) + 1
-    bitfield_message = IO.iodata_to_binary([<<size::big-integer-size(32), 5>>, [bitfield]])
-    TCP.send(connection, bitfield_message)
-  end
-
-
+  # transmit
   test "send choke to remote peer" do
     Torrent.File.Supervisor.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
