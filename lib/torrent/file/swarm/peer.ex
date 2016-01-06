@@ -1,9 +1,7 @@
 defmodule Torrent.File.Swarm.Peer do
   use Supervisor
 
-  alias Torrent.File.Swarm.Peer.Pieces
-  alias Torrent.File.Swarm.Peer.Receiver
-  alias Torrent.File.Swarm.Peer.Transmitter
+  alias Torrent.File.Swarm.Peer.{Pieces, Receiver, Transmitter, Controller}
 
   def start_link(info_hash, {ip, port} = peer_address) do
     Supervisor.start_link(__MODULE__, [info_hash, peer_address], name: via_name(info_hash, ip, port))
