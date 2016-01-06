@@ -62,6 +62,14 @@ defmodule Torrent.File.Swarm.Peer.Transmitter do
   def not_interested(info_hash, {ip, port}),
     do: GenServer.cast(via_name(info_hash, ip, port), :not_interested)
 
+  @doc """
+  Inform the remote peer that we are in the possession of the given piece number.
+  """
+  def have(pid, piece_number) when is_pid(pid),
+    do: GenServer.cast(pid, {:have, piece_number})
+  def have({info_hash, {ip, port}}, piece_number),
+    do: GenServer.cast(via_name(info_hash, ip, port), {:have, piece_number})
+
   # Server callbacks
   def init(state) do
     {:ok, state}
@@ -88,6 +96,11 @@ defmodule Torrent.File.Swarm.Peer.Transmitter do
 
   def handle_cast(:not_interested, %State{socket: socket} = state) do
     TCP.send(socket, <<1::big-integer-size(32), 3>>)
+    {:noreply, state}
+  end
+
+  def handle_cast({:have, piece_number}, %State{socket: socket} = state) do
+    TCP.send(socket, <<1::big-integer-size(32), 4, piece_number>>)
     {:noreply, state}
   end
 end
