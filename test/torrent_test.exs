@@ -95,4 +95,16 @@ defmodule TorrentTest do
     Torrent.File.Swarm.Peer.Transmitter.have({@info_hash, connection_addr}, 1)
     assert {:ok, [0, 0, 0, 1, 4, 1]} == TCP.recv(connection, 0)
   end
+
+  test "send bitfield message to remote peer" do
+    Torrent.File.Supervisor.add(@info_hash)
+    {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
+    {:ok, connection_addr} = :inet.sockname(connection)
+
+    TCP.send(connection, @handshake)
+    {:ok, _} = TCP.recv(connection, 68)
+
+    Torrent.File.Swarm.Peer.Transmitter.bitfield({@info_hash, connection_addr}, BitFieldSet.new(<<101, 128, 42>>))
+    assert {:ok, [0, 0, 0, 4, 5, 101, 128, 42]} == TCP.recv(connection, 0)
+  end
 end

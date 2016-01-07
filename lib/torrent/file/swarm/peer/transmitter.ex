@@ -70,6 +70,14 @@ defmodule Torrent.File.Swarm.Peer.Transmitter do
   def have({info_hash, {ip, port}}, piece_number),
     do: GenServer.cast(via_name(info_hash, ip, port), {:have, piece_number})
 
+  @doc """
+  Send the current bitfield to the remote peer.
+  """
+  def bitfield(pid, bitfield) when is_pid(pid),
+    do: GenServer.cast(pid, {:bitfield, bitfield})
+  def bitfield({info_hash, {ip, port}}, bitfield),
+    do: GenServer.cast(via_name(info_hash, ip, port), {:bitfield, bitfield})
+
   # Server callbacks
   def init(state) do
     {:ok, state}
@@ -101,6 +109,14 @@ defmodule Torrent.File.Swarm.Peer.Transmitter do
 
   def handle_cast({:have, piece_number}, %State{socket: socket} = state) do
     TCP.send(socket, <<1::big-integer-size(32), 4, piece_number>>)
+    {:noreply, state}
+  end
+
+  def handle_cast({:bitfield, bitfield}, %State{socket: socket} = state) do
+    field = BitFieldSet.to_binary(bitfield)
+    field_size = byte_size(field) + 1
+    message = IO.iodata_to_binary [<<field_size::big-integer-size(32), 5>>, field]
+    TCP.send(socket, message)
     {:noreply, state}
   end
 end
