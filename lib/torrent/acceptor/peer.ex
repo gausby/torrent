@@ -62,7 +62,7 @@ defmodule Torrent.Acceptor.Peer do
   end
 
   defp check_info_hash(info_hash) do
-    case :gproc.where({:n, :l, {Torrent.File, info_hash}}) do
+    case :gproc.where({:n, :l, {Torrent.File.Swarm, info_hash}}) do
       :undefined ->
         {:error, "unknown info_hash"}
 
