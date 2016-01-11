@@ -30,40 +30,36 @@ defmodule PeerWire do
   Message decoding
   """
   # keep alive
-  def decode_message(<<0::big-integer-size(32)>>),
+  def decode_message(<<>>),
     do: :keep_alive
   # without payload
-  def decode_message(<<1::big-integer-size(32), 0>>),
+  def decode_message(<<0>>),
     do: :choke
-  def decode_message(<<1::big-integer-size(32), 1>>),
+  def decode_message(<<1>>),
     do: :unchoke
-  def decode_message(<<1::big-integer-size(32), 2>>),
+  def decode_message(<<2>>),
     do: :interested
-  def decode_message(<<1::big-integer-size(32), 3>>),
+  def decode_message(<<3>>),
     do: :not_interested
   # have
-  def decode_message(<<5::big-integer-size(32), 4, piece_number::big-integer-size(32)>>),
+  def decode_message(<<4, piece_number::big-integer-size(32)>>),
     do: {:have, piece_number}
   # decode bitfield
-  def decode_message(<<len::big-integer-size(32), 5, bitfield::binary>>) do
-    bitfield_length = len - 1
-    <<bitfield::binary-size(bitfield_length), _rest::binary>> = bitfield
+  def decode_message(<<5, bitfield::binary>>) do
     {:bitfield, bitfield}
   end
   # decode request
-  def decode_message(<<13::big-integer-size(32), 6, index::big-integer-size(32),
+  def decode_message(<<6, index::big-integer-size(32),
                      begin::big-integer-size(32), length::big-integer-size(32)>>) do
     {:request, index, begin, length}
   end
   # decode piece
-  def decode_message(<<len::big-integer-size(32), 7, index::big-integer-size(32),
-                     begin::big-integer-size(32), block::binary>>) do
-    block_length = len - 9
-    <<data::binary-size(block_length)>> = block
+  def decode_message(<<7, index::big-integer-size(32),
+                     begin::big-integer-size(32), data::binary>>) do
     {:piece, index, begin, data}
   end
   # decode cancel
-  def decode_message(<<13::big-integer-size(32), 8, index::big-integer-size(32),
+  def decode_message(<<8, index::big-integer-size(32),
                      begin::big-integer-size(32), length::big-integer-size(32)>>),
     do: {:cancel, index, begin, length}
   # todo, "port"
