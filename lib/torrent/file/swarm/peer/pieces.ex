@@ -11,4 +11,20 @@ defmodule Torrent.File.Swarm.Peer.Pieces do
     do: {:via, :gproc, peer_name(info_hash, ip, port)}
   defp peer_name(info_hash, ip, port),
     do: {:n, :l, {__MODULE__, info_hash, ip, port}}
+
+  def have({info_hash, {ip, port}}, piece) do
+    Agent.update(via_name(info_hash, ip, port), BitFieldSet, :set, [piece])
+  end
+
+  def has?({info_hash, {ip, port}}, piece) do
+    Agent.get(via_name(info_hash, ip, port), BitFieldSet, :member?, [piece])
+  end
+
+  def has_all?({info_hash, {ip, port}}) do
+    Agent.get(via_name(info_hash, ip, port), BitFieldSet, :has_all?, [])
+  end
+
+  def status({info_hash, {ip, port}}) do
+    Agent.get(via_name(info_hash, ip, port), &(&1))
+  end
 end
