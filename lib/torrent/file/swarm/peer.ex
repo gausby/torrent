@@ -15,6 +15,7 @@ defmodule Torrent.File.Swarm.Peer do
   def init(opts) do
     children = [
       worker(Pieces, opts),
+      worker(Controller, opts),
       worker(Receiver, opts),
       worker(Transmitter, opts)
     ]

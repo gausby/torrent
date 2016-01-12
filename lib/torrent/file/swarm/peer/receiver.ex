@@ -2,18 +2,26 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
   use GenServer
 
   alias :gen_tcp, as: TCP
+  alias Torrent.File.Swarm.Peer.Controller
   alias __MODULE__, as: State
 
   defstruct(
     state: :awaiting_socket,
     socket: nil,
     buffer: [],
-    remaining: nil
+    remaining: nil,
+    controller: nil,
+    ip: nil,
+    port: nil,
+    info_hash: nil
   )
 
   #=Client API =========================================================
   def start_link(info_hash, {ip, port}) do
-    GenServer.start_link(__MODULE__, %State{socket: nil}, name: via_name(info_hash, ip, port))
+    initial_state =
+      %State{ip: ip, port: port, info_hash: info_hash}
+
+    GenServer.start_link(__MODULE__, initial_state, name: via_name(info_hash, ip, port))
   end
 
   defp via_name(info_hash, ip, port),
@@ -34,11 +42,17 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
 
   #=Server callbacks ===================================================
   def init(state) do
+    send self, :after_init
     {:ok, state}
   end
 
   def handle_call({:set_socket, socket}, _from, %State{state: :awaiting_socket} = state) do
     {:reply, :ok, %State{state|socket: socket, state: :ready}}
+  end
+
+  def handle_info(:after_init, %State{controller: nil} = state) do
+    {controller, _} = :gproc.await({:n, :l, {Controller, state.info_hash, state.ip, state.port}}, 300)
+    {:noreply, %State{state|controller: controller}}
   end
 
   def handle_info({:tcp_closed, _port}, state) do
@@ -62,8 +76,7 @@ defmodule Torrent.File.Swarm.Peer.Receiver do
         %State{state|state: :consuming_data, buffer: data_acc, remaining: remaining}
 
       {:emit, package, remaining_data} ->
-        # todo, send packages on to a handler process instead of stdout
-        IO.inspect {:emit, package}
+        :gproc.send(state.controller, {:receive, package})
         handle_inbound(remaining_data, %{state|state: :ready, buffer: [], remaining: nil})
 
       :reset ->
