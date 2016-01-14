@@ -12,6 +12,19 @@ defmodule Torrent.File.Swarm.Peer.Pieces do
   defp peer_name(info_hash, ip, port),
     do: {:n, :l, {__MODULE__, info_hash, ip, port}}
 
+  def overwrite({info_hash, {ip, port}}, set) do
+    Agent.get_and_update(via_name(info_hash, ip, port), fn state ->
+      target_size = state.size
+      case BitFieldSet.new(set, state.info_hash) do
+        %BitFieldSet{size: ^target_size} = new_state ->
+          {:ok, new_state}
+
+        _ ->
+          {{:error, :set_mismatch}, state}
+      end
+    end)
+  end
+
   def have({info_hash, {ip, port}}, piece) do
     Agent.update(via_name(info_hash, ip, port), BitFieldSet, :set, [piece])
   end
