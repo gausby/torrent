@@ -1,4 +1,4 @@
 %{"bencode": {:hex, :bencode, "0.2.0"},
-  "bit_field_set": {:hex, :bit_field_set, "0.0.1"},
+  "bit_field_set": {:hex, :bit_field_set, "0.0.3"},
   "eqc_ex": {:hex, :eqc_ex, "1.2.4"},
   "gproc": {:hex, :gproc, "0.5.0"}}
