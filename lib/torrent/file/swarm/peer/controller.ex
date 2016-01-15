@@ -3,7 +3,7 @@ defmodule Torrent.File.Swarm.Peer.Controller do
 
   use GenServer
 
-  alias Torrent.File.Swarm.Peer.Transmitter
+  alias Torrent.File.Swarm.Peer.{Pieces, Transmitter}
   alias __MODULE__, as: State
 
   defstruct(
@@ -41,7 +41,6 @@ defmodule Torrent.File.Swarm.Peer.Controller do
 
   # decode message and dispatch package
   def handle_info({:receive, package}, state) do
-    IO.inspect package
     state = handle_package(state, PeerWire.decode_message(package))
     {:noreply, state}
   end
@@ -74,12 +73,14 @@ defmodule Torrent.File.Swarm.Peer.Controller do
 
   def handle_package(state, {:have, piece}) do
     Logger.info "remote peer has a new piece", [peer: state.identifier, piece: piece]
+    Pieces.have({state.info_hash, state.address}, piece)
     state
   end
 
   def handle_package(state, {:bitfield, bitfield}) do
     Logger.info "remote send its bitfield information", [peer: state.identifier]
     # overwrite local bit field set
+    :ok = Pieces.overwrite({state.info_hash, state.address}, bitfield)
     state
   end
 
