@@ -7,7 +7,7 @@ defmodule Torrent.File.Swarm.Peer.ReceiverTest do
   @handshake [19, "BitTorrent Protocol", 0, 0, 0, 0, 0, 0, 0, 0, @info_hash, "yxxxxxxxxxxxxxxxxxxx"]
 
   test "establish connection if remote ask for a known info_hash" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
 
     TCP.send(connection, [

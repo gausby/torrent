@@ -12,7 +12,7 @@ defmodule Torrent.Supervisor do
   def init(:ok) do
     children = [
       worker(Torrent.Acceptor, [@peer_id, @port]),
-      worker(Torrent.File.Supervisor, [])
+      worker(Torrent.Processes, [])
     ]
     supervise(children, strategy: :one_for_one)
   end

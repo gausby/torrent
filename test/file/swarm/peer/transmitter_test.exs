@@ -7,7 +7,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   @handshake [19, "BitTorrent Protocol", 0, 0, 0, 0, 0, 0, 0, 0, @info_hash, "yxxxxxxxxxxxxxxxxxxx"]
 
   test "send choke to remote peer" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, my_addr} = :inet.sockname(connection)
 
@@ -19,7 +19,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send unchoke to remote peer" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, my_addr} = :inet.sockname(connection)
 
@@ -31,7 +31,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send interested to remote peer" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, my_addr} = :inet.sockname(connection)
 
@@ -43,7 +43,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send not interest to remote peer" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, connection_addr} = :inet.sockname(connection)
 
@@ -55,7 +55,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send have messages to remote peer" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, connection_addr} = :inet.sockname(connection)
 
@@ -67,7 +67,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send bitfield message to remote peer" do
-    Torrent.File.Supervisor.add(@info_hash)
+    Torrent.Processes.add(@info_hash)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, connection_addr} = :inet.sockname(connection)
 
