@@ -17,7 +17,7 @@ defmodule Torrent.Mixfile do
 
   defp deps do
     [{:bencode, "~> 0.2.0"},
-     {:bit_field_set, "~> 0.0.3"},
+     {:bit_field_set, "~> 0.1.0"},
      {:gproc, "~> 0.5.0"}]
   end
 end

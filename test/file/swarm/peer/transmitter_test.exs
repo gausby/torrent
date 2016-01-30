@@ -74,7 +74,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
     TCP.send(connection, @handshake)
     {:ok, _} = TCP.recv(connection, 68)
 
-    Torrent.File.Swarm.Peer.Transmitter.bitfield({@info_hash, connection_addr}, BitFieldSet.new(<<101, 128, 42>>))
+    Torrent.File.Swarm.Peer.Transmitter.bitfield({@info_hash, connection_addr}, BitFieldSet.new!(<<101, 128, 42>>, 24))
     assert {:ok, [0, 0, 0, 4, 5, 101, 128, 42]} == TCP.recv(connection, 0)
   end
 end

@@ -4,7 +4,7 @@ defmodule Torrent.File.Swarm.Peer.Pieces do
   end
 
   defp initial_value(info_hash) do
-    fn -> BitFieldSet.new(64, info_hash) end
+    fn -> BitFieldSet.new!(<<>>, 320, info_hash) end
   end
 
   defp via_name(info_hash, ip, port),
@@ -15,7 +15,7 @@ defmodule Torrent.File.Swarm.Peer.Pieces do
   def overwrite({info_hash, {ip, port}}, set) do
     Agent.get_and_update(via_name(info_hash, ip, port), fn state ->
       target_size = state.size
-      case BitFieldSet.new(set, state.info_hash) do
+      case BitFieldSet.new!(set, target_size, state.info_hash) do
         %BitFieldSet{size: ^target_size} = new_state ->
           {:ok, new_state}
 
