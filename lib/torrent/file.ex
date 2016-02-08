@@ -14,7 +14,7 @@ defmodule Torrent.File do
     children = [
       worker(Torrent.File.Swarm, [info_hash]),
       worker(Torrent.File.Controller, [info_hash]),
-      worker(Torrent.File.Pieces, [info_hash])
+      supervisor(Torrent.File.Pieces, [info_hash])
     ]
     supervise(children, strategy: :one_for_one)
   end
