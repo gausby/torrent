@@ -1,8 +1,7 @@
 defmodule Torrent.File.PieceManagerTest do
   use ExUnit.Case
 
-  alias Torrent.File.Pieces.Store.Checksums
-  alias Torrent.File.Pieces.State
+  alias Torrent.File.Pieces.{State, Checksums}
 
   # test "foo" do
   #   {:ok, %{"info" => info} = _data, info_hash} =
@@ -15,7 +14,7 @@ defmodule Torrent.File.PieceManagerTest do
   test "store and retrieve checksums" do
     first = <<0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9>>
     second = <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0>>
-    {:ok, pid} = Checksums.start_link(IO.iodata_to_binary([first, second]))
+    {:ok, pid} = Checksums.start_link("info_hash", %{"pieces" => IO.iodata_to_binary([first, second])})
     assert first == Checksums.get(pid, 0)
     assert second == Checksums.get(pid, 1)
   end

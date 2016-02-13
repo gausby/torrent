@@ -1,7 +1,7 @@
-defmodule Torrent.File.Pieces.Store.Checksums do
+defmodule Torrent.File.Pieces.Checksums do
   # this module could perhaps be replaced by an ETS table
 
-  def start_link(pieces) do
+  def start_link(info_hash, %{"pieces" => pieces}) do
     lookup_table =
       pieces
       |> split_pieces

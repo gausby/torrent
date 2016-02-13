@@ -14,7 +14,6 @@ defmodule Torrent.File.Pieces.Store do
   def init(meta_info) do
     children = [
       supervisor(Torrent.File.Pieces.Store.Blocks, []),
-      worker(Torrent.File.Pieces.Store.Checksums, [meta_info["pieces"]]),
       worker(Torrent.File.Pieces.Store.Controller, [Map.take(meta_info, ["piece length"])])
     ]
 
