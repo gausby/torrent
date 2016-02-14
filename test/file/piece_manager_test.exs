@@ -29,4 +29,10 @@ defmodule Torrent.File.PieceManagerTest do
     assert state.pieces == MapSet.new([1, 8, 2019])
     assert state.size == 2020
   end
+
+  test "block controller" do
+    info_hash = "hello, world"
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 524288})
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
+  end
 end

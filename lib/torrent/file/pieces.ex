@@ -10,9 +10,8 @@ defmodule Torrent.File.Pieces do
       worker(Torrent.File.Pieces.Controller, [info_hash]),
       worker(Torrent.File.Pieces.State, [info_hash, Map.take(meta_info, ["piece length", "length"])]),
       worker(Torrent.File.Pieces.Checksums, [info_hash, Map.take(meta_info, ["pieces"])]),
-      supervisor(Torrent.File.Pieces.Store, [info_hash, meta_info])
+      supervisor(Torrent.File.Pieces.Store.Supervisor, [info_hash, meta_info])
     ]
     supervise(children, strategy: :one_for_one)
   end
-
 end
