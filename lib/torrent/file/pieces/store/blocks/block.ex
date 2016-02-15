@@ -11,12 +11,21 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
              length: length,
              candidates: []}
 
-    Agent.start(fn -> initial_state end, name: via_name(info_hash, piece_number, offset, length))
+    Agent.start(fn -> initial_state end, name: via_name({info_hash, piece_number, offset, length}))
   end
 
-  defp via_name(info_hash, piece_number, offset, length),
-    do: {:via, :gproc, block_name(info_hash, piece_number, offset, length)}
-  defp block_name(info_hash, piece_number, offset, length),
+  defp via_name({info_hash, piece_number, offset, length}),
+    do: {:via, :gproc, block_name({info_hash, piece_number, offset, length})}
+  defp block_name({info_hash, piece_number, offset, length}),
     do: {:n, :l, {__MODULE__, info_hash, piece_number, offset, length}}
 
+  def add_candidate(block, {candidate, data}) do
+    Agent.update(via_name(block), fn state ->
+      %State{state|candidates: [{candidate, data} | state.candidates]}
+    end)
+  end
+
+  def get_candidates(block) do
+    Agent.get(via_name(block), fn state -> state.candidates end)
+  end
 end

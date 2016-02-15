@@ -35,4 +35,15 @@ defmodule Torrent.File.PieceManagerTest do
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 524288})
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
   end
+
+  test "set and retrieve candidates from a block" do
+    info_hash = "hello, world 2"
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 524288})
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
+
+    assert Torrent.File.Pieces.Store.Blocks.Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "bar"})
+
+    assert [{"foo", "bar"}] =  Torrent.File.Pieces.Store.Blocks.Block.get_candidates({info_hash, 100, 0, 16*1024})
+  end
+
 end
