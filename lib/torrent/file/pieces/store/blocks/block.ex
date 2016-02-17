@@ -42,20 +42,14 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
       # this piece of data is already amongst the candidates
       Enum.map(candidates, fn
         {^data, providers} ->
-          if provider in providers do
-            # already has it from the provider
-            {data, providers}
-          else
-            # already has it from a different provider
-            {data, [provider|providers]}
-          end
+          {data, MapSet.put(providers, provider)}
 
         other ->
           other
       end)
     else
       # this piece of data is new, add it to the candidates list
-      [{data, [provider]}|candidates]
+      [{data, MapSet.new([provider])}|candidates]
     end
   end
 end
