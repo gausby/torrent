@@ -2,6 +2,7 @@ defmodule Torrent.File.PieceManagerTest do
   use ExUnit.Case
 
   alias Torrent.File.Pieces.{State, Checksums}
+  alias Torrent.File.Pieces.Store.Blocks.Block
 
   # test "foo" do
   #   {:ok, %{"info" => info} = _data, info_hash} =
@@ -36,14 +37,28 @@ defmodule Torrent.File.PieceManagerTest do
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
   end
 
-  test "set and retrieve candidates from a block" do
+  test "set and retrieve candidates on a block" do
     info_hash = "hello, world 2"
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 524288})
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
 
-    assert Torrent.File.Pieces.Store.Blocks.Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "bar"})
+    # should start out with empty candidate list
+    assert [] =  Block.get_candidates({info_hash, 100, 0, 16*1024})
 
-    assert [{"foo", "bar"}] =  Torrent.File.Pieces.Store.Blocks.Block.get_candidates({info_hash, 100, 0, 16*1024})
+    # adding a candidate should update the candidate list
+    assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "bar"})
+    assert [{"foo", ["bar"]}] =  Block.get_candidates({info_hash, 100, 0, 16*1024})
+
+    # adding the same candidate should keep the candidate list as is
+    assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "bar"})
+    assert [{"foo", ["bar"]}] =  Block.get_candidates({info_hash, 100, 0, 16*1024})
+
+    # adding the same candidate from a different provider should should update
+    assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "baz"})
+    assert [{"foo", ["baz", "bar"]}] =  Block.get_candidates({info_hash, 100, 0, 16*1024})
+
+    # adding another candidate should update the candidate list
+    assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foobar", "foo"})
+    assert [{"foobar", ["foo"]}, {"foo", ["baz", "bar"]}] =  Block.get_candidates({info_hash, 100, 0, 16*1024})
   end
-
 end

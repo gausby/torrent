@@ -23,7 +23,7 @@ defmodule Torrent.File.Pieces.Store.Blocks do
         nil
 
       pid ->
-        Supervisor.start_child(pid, [offset, length])
+        Supervisor.start_child(pid, [offset, length, self])
     end
   end
 end

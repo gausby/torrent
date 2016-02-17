@@ -22,10 +22,13 @@ defmodule Torrent.File.Pieces.Store.Controller do
   end
 
   # public api
+  def report_block(pid, {:has, count}) do
+    :gen_fsm.send_event(pid, {:has, count})
+  end
 
   # states
-  def idle(:idle, state) do
-    {:next_state, :idle, state}
+  def awaiting_blocks({:has, _count}, state) do
+    {:next_state, :awaiting_blocks, state}
   end
 
   # todo, awaiting blocks (decrement remaining when blocks report back, when that number
@@ -41,7 +44,7 @@ defmodule Torrent.File.Pieces.Store.Controller do
       Blocks.add(state.info_hash, state.index, offset, length)
     end
 
-    {:ok, :idle, state}
+    {:ok, :awaiting_blocks, state}
   end
 
   def handle_info(_, _state_name, state) do
