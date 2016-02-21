@@ -1,6 +1,8 @@
 defmodule Torrent.File.Pieces.Store.Blocks.Block do
   defstruct [:controller, :candidates, :offset, :length, :info_hash, :piece_number]
 
+  use GenServer
+
   alias Torrent.File.Pieces.Store.Controller
   alias __MODULE__, as: State
 
@@ -13,7 +15,7 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
              candidates: [],
              controller: controller_pid}
 
-    Agent.start(fn -> initial_state end, name: via_name({info_hash, piece_number, offset, length}))
+    GenServer.start_link(__MODULE__, initial_state, name: via_name({info_hash, piece_number, offset, length}))
   end
 
   defp via_name({info_hash, piece_number, offset, length}),
@@ -21,20 +23,32 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
   defp block_name({info_hash, piece_number, offset, length}),
     do: {:n, :l, {__MODULE__, info_hash, piece_number, offset, length}}
 
+  # public api
   def add_candidate(block, {data, provider}) do
-    Agent.update(via_name(block), fn %State{candidates: current} = state ->
-      candidates = add_to_candidates(current, data, provider)
-      if length(current) < length(candidates) do
-        Controller.report_block(state.controller, {:has, length candidates})
-      end
-      %State{state|candidates: candidates}
-    end)
+    GenServer.cast(via_name(block), {:add, data, provider})
   end
 
   def get_candidates(block) do
-    Agent.get(via_name(block), fn state -> state.candidates end)
+    GenServer.call(via_name(block), :candidates)
   end
 
+  # Server callbacks ----------------------------------------------------
+  def init(state) do
+    {:ok, state}
+  end
+
+  def handle_cast({:add, data, provider}, %State{candidates: current} = state) do
+    candidates = add_to_candidates(current, data, provider)
+    if length(current) < length(candidates) do
+      Controller.report_block(state.controller, {:has, length candidates})
+    end
+
+    {:noreply, %State{state|candidates: candidates}}
+  end
+
+  def handle_call(:candidates, _from, state) do
+    {:reply, state.candidates, state}
+  end
 
   # =====================================================================
   defp add_to_candidates(candidates, data, provider) do
