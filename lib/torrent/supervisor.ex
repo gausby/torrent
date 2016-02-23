@@ -1,21 +1,17 @@
 defmodule Torrent.Supervisor do
   use Supervisor
 
-  def start_link do
-    Supervisor.start_link(__MODULE__, :ok)
+  def start_link(opts) do
+    opts = opts |> Enum.into(%{})
+    Supervisor.start_link(__MODULE__, opts)
   end
 
-  # hard coded for now
-  @peer_id "xxxxxxxxxxxxxxxxxxxx"
-  @port 29182
-
-  def init(:ok) do
+  def init(opts) do
     children = [
-      worker(Torrent.Acceptor, [@peer_id, @port]),
+      worker(Torrent.Acceptor, [opts[:peer_id], opts[:port]]),
       worker(Torrent.Processes, []),
       worker(Torrent.Controller, [])
     ]
     supervise(children, strategy: :one_for_one)
   end
-
 end
