@@ -12,7 +12,7 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
              piece_number: piece_number,
              offset: offset,
              length: length,
-             candidates: [],
+             candidates: %{},
              controller: controller_pid}
 
     GenServer.start_link(__MODULE__, initial_state, name: via_name({info_hash, piece_number, offset, length}))
@@ -38,32 +38,21 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
   end
 
   def handle_cast({:add, data, provider}, %State{candidates: current} = state) do
-    candidates = add_to_candidates(current, data, provider)
-    if length(current) < length(candidates) do
-      Controller.report_block(state.controller, {:has, length candidates})
-    end
+    data_sha = :crypto.hash(:sha, data)
+    candidates =
+      if Map.has_key?(current, data_sha) do
+        update_in(current, [data_sha], fn {data, providers} ->
+          {data, MapSet.put(providers, provider)}
+        end)
+      else
+        Controller.report_block(state.controller, {:has, state.piece_number})
+        Map.put_new(current, data_sha, {data, MapSet.new([provider])})
+      end
 
     {:noreply, %State{state|candidates: candidates}}
   end
 
   def handle_call(:candidates, _from, state) do
     {:reply, state.candidates, state}
-  end
-
-  # =====================================================================
-  defp add_to_candidates(candidates, data, provider) do
-    if Enum.any?(candidates, fn {^data, _} -> true; _ -> false end) do
-      # this piece of data is already amongst the candidates
-      Enum.map(candidates, fn
-        {^data, providers} ->
-          {data, MapSet.put(providers, provider)}
-
-        other ->
-          other
-      end)
-    else
-      # this piece of data is new, add it to the candidates list
-      [{data, MapSet.new([provider])}|candidates]
-    end
   end
 end

@@ -43,22 +43,28 @@ defmodule Torrent.File.PieceManagerTest do
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
 
     # should start out with empty candidate list
-    assert [] = Block.get_candidates({info_hash, 100, 0, 16*1024})
+    assert %{} = Block.get_candidates({info_hash, 100, 0, 16*1024})
 
     # adding a candidate should update the candidate list
     assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "bar"})
-    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) == [{"foo", MapSet.new(["bar"])}]
+    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) ==
+      Map.put(%{}, :crypto.hash(:sha, "foo"), {"foo", MapSet.new(["bar"])})
 
     # adding the same candidate should keep the candidate list as is
     assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "bar"})
-    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) == [{"foo", MapSet.new(["bar"])}]
+    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) ==
+      Map.put(%{}, :crypto.hash(:sha, "foo"), {"foo", MapSet.new(["bar"])})
 
     # adding the same candidate from a different provider should should update
     assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foo", "baz"})
-    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) == [{"foo", MapSet.new(["baz", "bar"])}]
+    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) ==
+      Map.put(%{}, :crypto.hash(:sha, "foo"), {"foo", MapSet.new(["baz", "bar"])})
 
     # adding another candidate should update the candidate list
     assert Block.add_candidate({info_hash, 100, 0, 16*1024}, {"foobar", "foo"})
-    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) == [{"foobar", MapSet.new(["foo"])}, {"foo", MapSet.new(["baz", "bar"])}]
+    assert Block.get_candidates({info_hash, 100, 0, 16*1024}) ==
+      %{}
+      |> Map.put(:crypto.hash(:sha, "foo"), {"foo", MapSet.new(["baz", "bar"])})
+      |> Map.put(:crypto.hash(:sha, "foobar"), {"foobar", MapSet.new(["foo"])})
   end
 end
