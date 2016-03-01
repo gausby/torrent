@@ -45,7 +45,7 @@ defmodule Torrent.File.Pieces.Store.Blocks.Block do
           {data, MapSet.put(providers, provider)}
         end)
       else
-        Controller.report_block(state.controller, {:has, state.piece_number})
+        Controller.report_block(state.controller, {:has, state.offset})
         Map.put_new(current, data_sha, {data, MapSet.new([provider])})
       end
 

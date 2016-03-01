@@ -34,13 +34,13 @@ defmodule Torrent.File.PieceManagerTest do
   test "block controller" do
     info_hash = "hello, world"
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 524288})
-    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100, :crypto.hash(:sha, "foo"))
   end
 
   test "set and retrieve candidates on a block" do
     info_hash = "hello, world 2"
     assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 524288})
-    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100)
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 100, :crypto.hash(:sha, "foo"))
 
     # should start out with empty candidate list
     assert %{} = Block.get_candidates({info_hash, 100, 0, 16*1024})
@@ -66,5 +66,19 @@ defmodule Torrent.File.PieceManagerTest do
       %{}
       |> Map.put(:crypto.hash(:sha, "foo"), {"foo", MapSet.new(["baz", "bar"])})
       |> Map.put(:crypto.hash(:sha, "foobar"), {"foobar", MapSet.new(["foo"])})
+  end
+
+  test "validate pieces when all blocks has been received" do
+    info_hash = "hello, world 3"
+    peer_name = "xxxxxxxxxxxxxxxxxxxx"
+    Torrent.File.Pieces.Store.Supervisor.start_link(info_hash, %{"piece length" => 32, "block length" => 8})
+    assert {:ok, _pid} = Torrent.File.Pieces.Store.Supervisor.add(info_hash, 0, :crypto.hash(:sha, "abcd"))
+
+    Block.add_candidate({info_hash, 0, 0, 8}, {"a", peer_name})
+    Block.add_candidate({info_hash, 0, 8, 8}, {"b", peer_name})
+    Block.add_candidate({info_hash, 0, 16, 8}, {"c", peer_name})
+    Block.add_candidate({info_hash, 0, 24, 8}, {"d", peer_name})
+    :timer.sleep 100
+    # todo, find a way to validate that it actually retrieved and ran the checksum on the data
   end
 end
