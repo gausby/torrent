@@ -20,7 +20,7 @@ defmodule Torrent.Mixfile do
   defp elixirc_paths(_),     do: ["lib", "web"]
 
   defp deps do
-    [{:bencode, "~> 0.2.0"},
+    [{:bencode, "~> 0.3.0"},
      {:bit_field_set, "~> 0.1.0"},
      {:gproc, "~> 0.5.0"}]
   end
