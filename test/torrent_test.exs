@@ -14,4 +14,9 @@ defmodule TorrentTest do
 
     assert length(values) == 100
   end
+
+  test "should be able to add a torrent" do
+    {:ok, data} = File.read("./test/assets/ubuntu-15.10-desktop-amd64.iso.torrent")
+    assert {:ok, _pid} = Torrent.add(data)
+  end
 end

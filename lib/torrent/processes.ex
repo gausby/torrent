@@ -12,7 +12,7 @@ defmodule Torrent.Processes do
     supervise(children, strategy: :simple_one_for_one)
   end
 
-  def add(info_hash) do
-    Supervisor.start_child(__MODULE__, [info_hash])
+  def add(info_hash, meta) do
+    Supervisor.start_child(__MODULE__, [info_hash, meta])
   end
 end

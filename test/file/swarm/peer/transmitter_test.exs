@@ -6,8 +6,10 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   @info_hash "xxxxxxxxxxxxxxxxxxxx"
   @handshake [19, "BitTorrent Protocol", 0, 0, 0, 0, 0, 0, 0, 0, @info_hash, "yxxxxxxxxxxxxxxxxxxx"]
 
+  @data %{"info" => %{"pieces" => <<1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0>>, "piece length" => 524288, "length" => 1178386432}}
+
   test "send choke to remote peer" do
-    Torrent.Processes.add(@info_hash)
+    Torrent.Processes.add(@info_hash, @data)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, my_addr} = :inet.sockname(connection)
 
@@ -19,7 +21,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send unchoke to remote peer" do
-    Torrent.Processes.add(@info_hash)
+    Torrent.Processes.add(@info_hash, @data)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, my_addr} = :inet.sockname(connection)
 
@@ -31,7 +33,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send interested to remote peer" do
-    Torrent.Processes.add(@info_hash)
+    Torrent.Processes.add(@info_hash, @data)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, my_addr} = :inet.sockname(connection)
 
@@ -43,7 +45,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send not interest to remote peer" do
-    Torrent.Processes.add(@info_hash)
+    Torrent.Processes.add(@info_hash, @data)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, connection_addr} = :inet.sockname(connection)
 
@@ -55,7 +57,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send have messages to remote peer" do
-    Torrent.Processes.add(@info_hash)
+    Torrent.Processes.add(@info_hash, @data)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, connection_addr} = :inet.sockname(connection)
 
@@ -67,7 +69,7 @@ defmodule Torrent.File.Swarm.Peer.TransmitterTest do
   end
 
   test "send bitfield message to remote peer" do
-    Torrent.Processes.add(@info_hash)
+    Torrent.Processes.add(@info_hash, @data)
     {:ok, connection} = TCP.connect('localhost', 29182, [active: false])
     {:ok, connection_addr} = :inet.sockname(connection)
 
