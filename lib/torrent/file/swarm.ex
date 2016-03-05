@@ -1,8 +1,8 @@
 defmodule Torrent.File.Swarm do
   use Supervisor
 
-  def start_link(info_hash) do
-    Supervisor.start_link(__MODULE__, info_hash, name: via_name(info_hash))
+  def start_link(info_hash, meta) do
+    Supervisor.start_link(__MODULE__, {info_hash, meta}, name: via_name(info_hash))
   end
 
   defp via_name(info_hash),
@@ -10,9 +10,9 @@ defmodule Torrent.File.Swarm do
   defp swarm_name(info_hash),
     do: {:n, :l, {__MODULE__, info_hash}}
 
-  def init(info_hash) do
+  def init({info_hash, meta}) do
     children = [
-      worker(Torrent.File.Swarm.Peer, [info_hash])
+      worker(Torrent.File.Swarm.Peer, [info_hash, meta])
     ]
     supervise(children, strategy: :simple_one_for_one)
   end

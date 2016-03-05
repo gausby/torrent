@@ -12,7 +12,7 @@ defmodule Torrent.File do
 
   def init({info_hash, meta}) do
     children = [
-      worker(Torrent.File.Swarm, [info_hash]),
+      worker(Torrent.File.Swarm, [info_hash, meta["info"]]),
       worker(Torrent.File.Controller, [info_hash]),
       supervisor(Torrent.File.Pieces, [info_hash, meta["info"]])
     ]

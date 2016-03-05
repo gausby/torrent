@@ -3,8 +3,8 @@ defmodule Torrent.File.Swarm.Peer do
 
   alias Torrent.File.Swarm.Peer.{Pieces, Receiver, Transmitter, Controller}
 
-  def start_link(info_hash, {ip, port} = peer_address) do
-    Supervisor.start_link(__MODULE__, [info_hash, peer_address], name: via_name(info_hash, ip, port))
+  def start_link(info_hash, meta, {ip, port} = peer_address) do
+    Supervisor.start_link(__MODULE__, [info_hash, peer_address, meta], name: via_name(info_hash, ip, port))
   end
 
   defp via_name(info_hash, ip, port),
@@ -12,12 +12,12 @@ defmodule Torrent.File.Swarm.Peer do
   defp peer_name(info_hash, ip, port),
     do: {:n, :l, {__MODULE__, info_hash, ip, port}}
 
-  def init(opts) do
+  def init([info_hash, peer_address, meta]) do
     children = [
-      worker(Pieces, opts),
-      worker(Controller, opts),
-      worker(Receiver, opts),
-      worker(Transmitter, opts)
+      worker(Pieces, [info_hash, peer_address, Map.get(meta, "length")]),
+      worker(Controller, [info_hash, peer_address]),
+      worker(Receiver, [info_hash, peer_address]),
+      worker(Transmitter, [info_hash, peer_address])
     ]
     supervise(children, strategy: :one_for_all)
   end
