@@ -1,7 +1,7 @@
 defmodule Torrent.File.Swarm.Peer.Pieces do
   def start_link(info_hash, {ip, port}, %{"length" => length, "piece length" => piece_length}) do
     size = div(length, piece_length) + (if rem(length, piece_length) == 0, do: 0, else: 1)
-    Agent.start_link(initial_value(info_hash, length), name: via_name(info_hash, ip, port))
+    Agent.start_link(initial_value(info_hash, size), name: via_name(info_hash, ip, port))
   end
 
   defp initial_value(info_hash, length) do

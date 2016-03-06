@@ -11,7 +11,7 @@ defmodule Torrent.File.Swarm.Peer.PiecesTest do
   @via_name {@info_hash, @port_and_ip}
 
   test "marking pieces as have" do
-    {:ok, _pid} = Pieces.start_link(@info_hash, @port_and_ip, %{"length" => 320, "piece length" => 8})
+    {:ok, _pid} = Pieces.start_link(@info_hash, @port_and_ip, %{"length" => 320, "piece length" => 1})
     refute Pieces.has?(@via_name, 1)
 
     Pieces.have(@via_name, 1)
@@ -19,7 +19,7 @@ defmodule Torrent.File.Swarm.Peer.PiecesTest do
   end
 
   test "should be able to overwrite state" do
-    {:ok, _pid} = Pieces.start_link(@info_hash, @port_and_ip, %{"length" => 320, "piece length" => 8})
+    {:ok, _pid} = Pieces.start_link(@info_hash, @port_and_ip, %{"length" => 320, "piece length" => 1})
     assert Pieces.status(@via_name).pieces == MapSet.new
     assert :ok = Pieces.overwrite(@via_name, <<128, 128, 128, 128, 128, 128, 128, 128>>)
     assert Pieces.status(@via_name).pieces == MapSet.new([0, 8, 16, 24, 32, 40, 48, 56])
