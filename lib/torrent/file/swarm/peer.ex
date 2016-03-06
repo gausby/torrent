@@ -14,7 +14,7 @@ defmodule Torrent.File.Swarm.Peer do
 
   def init([info_hash, peer_address, meta]) do
     children = [
-      worker(Pieces, [info_hash, peer_address, Map.get(meta, "length")]),
+      worker(Pieces, [info_hash, peer_address, Map.take(meta, ["length", "piece length"])]),
       worker(Controller, [info_hash, peer_address]),
       worker(Receiver, [info_hash, peer_address]),
       worker(Transmitter, [info_hash, peer_address])
