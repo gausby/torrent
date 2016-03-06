@@ -19,6 +19,6 @@ defmodule Torrent do
 
   def add(<<"d", _::binary>> = raw) do
     {:ok, data, info_hash} = Bencode.decode_with_info_hash(raw)
-    Torrent.File.start_link(info_hash, data)
+    Torrent.Processes.add(info_hash, data)
   end
 end
