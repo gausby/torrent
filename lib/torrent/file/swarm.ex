@@ -18,7 +18,12 @@ defmodule Torrent.File.Swarm do
   end
 
   def start_child(info_hash, peer_address) do
-    pid = :gproc.where(swarm_name(info_hash))
-    Supervisor.start_child(pid, [peer_address])
+    case :gproc.where(swarm_name(info_hash)) do
+      :undefined ->
+        {:error, :unknown_torrent}
+
+      pid when is_pid(pid) ->
+        Supervisor.start_child(pid, [peer_address])
+    end
   end
 end
