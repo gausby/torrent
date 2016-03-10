@@ -23,8 +23,8 @@ defmodule Torrent.File.Swarm.Peer do
   end
 
   def forward_socket(info_hash, peer, socket) do
-    Receiver.hand_socket({info_hash, peer}, socket)
-    Transmitter.hand_socket({info_hash, peer}, socket)
+    :ok = Receiver.hand_socket({info_hash, peer}, socket)
+    :ok = Transmitter.hand_socket({info_hash, peer}, socket)
     :ok
   end
 end
