@@ -2,13 +2,20 @@ defmodule Torrent.File.Pieces.Checksums do
   # this module could perhaps be replaced by an ETS table
 
   def start_link(info_hash, %{"pieces" => pieces}) do
-    lookup_table =
-      pieces
-      |> split_pieces
-      |> Enum.into(%{})
-
-    Agent.start_link(fn -> lookup_table end)
+    Agent.start_link(
+      fn ->
+        pieces
+        |> split_into_indexed_pieces
+        |> Enum.into(%{})
+      end,
+      name: via_name(info_hash)
+    )
   end
+
+  def via_name(info_hash),
+    do: {:via, :gproc, checksum_index(info_hash)}
+  def checksum_index(info_hash),
+    do: {:n, :l, {:module, info_hash}}
 
   def get(pid, index),
     do: Agent.get(pid, Map, :get, [index])
