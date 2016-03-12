@@ -20,9 +20,9 @@ defmodule Torrent.File.Pieces.Checksums do
   def get(pid, index),
     do: Agent.get(pid, Map, :get, [index])
 
-  defp split_pieces(pieces, index \\ 0, acc \\ [])
-  defp split_pieces(<<>>, _index, acc),
+  defp split_into_indexed_pieces(pieces, index \\ 0, acc \\ [])
+  defp split_into_indexed_pieces(<<>>, _index, acc),
     do: Enum.reverse(acc)
-  defp split_pieces(<<piece::binary-size(20), pieces::binary>>, index, acc),
-    do: split_pieces(pieces, index + 1, [{index, piece}|acc])
+  defp split_into_indexed_pieces(<<piece::binary-size(20), pieces::binary>>, index, acc),
+    do: split_into_indexed_pieces(pieces, index + 1, [{index, piece}|acc])
 end
