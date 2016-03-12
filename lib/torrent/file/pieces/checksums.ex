@@ -15,7 +15,7 @@ defmodule Torrent.File.Pieces.Checksums do
   def via_name(info_hash),
     do: {:via, :gproc, checksum_index(info_hash)}
   def checksum_index(info_hash),
-    do: {:n, :l, {:module, info_hash}}
+    do: {:n, :l, {__MODULE__, info_hash}}
 
   def get(pid, index),
     do: Agent.get(pid, Map, :get, [index])
