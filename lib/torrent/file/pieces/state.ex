@@ -1,11 +1,12 @@
 defmodule Torrent.File.Pieces.State do
   def start_link(info_hash, %{"length" => length, "piece length" => piece_length}) do
-    size = div(length, piece_length) + (if rem(length, piece_length) == 0, do: 0, else: 1)
-    Agent.start_link(initial_value(info_hash, size), name: via_name(info_hash))
-  end
-
-  defp initial_value(info_hash, size) do
-    fn -> BitFieldSet.new!(<<>>, size, info_hash) end
+    Agent.start_link(
+      fn ->
+        size = div(length, piece_length) + (if rem(length, piece_length) == 0, do: 0, else: 1)
+        BitFieldSet.new!(<<>>, size, info_hash)
+      end,
+      name: via_name(info_hash)
+    )
   end
 
   defp via_name(info_hash),
