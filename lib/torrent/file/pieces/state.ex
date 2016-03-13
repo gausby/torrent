@@ -16,7 +16,7 @@ defmodule Torrent.File.Pieces.State do
   def overwrite(info_hash, set) do
     Agent.get_and_update(via_name(info_hash), fn state ->
       target_size = state.size
-      case BitFieldSet.new!(set, 640, state.info_hash) do
+      case BitFieldSet.new!(set, target_size, state.info_hash) do
         %BitFieldSet{size: ^target_size} = new_state ->
           {:ok, new_state}
 
