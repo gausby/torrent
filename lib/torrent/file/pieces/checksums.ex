@@ -17,8 +17,10 @@ defmodule Torrent.File.Pieces.Checksums do
   def checksum_index(info_hash),
     do: {:n, :l, {__MODULE__, info_hash}}
 
-  def get(pid, index),
+  def get(pid, index) when is_pid(pid),
     do: Agent.get(pid, Map, :get, [index])
+  def get(info_hash, index),
+    do: Agent.get(via_name(info_hash), Map, :get, [index])
 
   defp split_into_indexed_pieces(pieces, index \\ 0, acc \\ [])
   defp split_into_indexed_pieces(<<>>, _index, acc),
