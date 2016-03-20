@@ -9,6 +9,7 @@ defmodule Torrent.Supervisor do
   def init(opts) do
     children = [
       worker(Torrent.Acceptor, [opts[:peer_id], opts[:port]]),
+      worker(Torrent.PeerDiscovery, []),
       worker(Torrent.Processes, []),
       worker(Torrent.Controller, [])
     ]
