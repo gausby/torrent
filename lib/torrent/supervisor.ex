@@ -9,8 +9,8 @@ defmodule Torrent.Supervisor do
   def init(opts) do
     children = [
       worker(Torrent.Acceptor, [opts[:peer_id], opts[:port]]),
-      worker(Torrent.PeerDiscovery, []),
-      worker(Torrent.Processes, []),
+      worker(Torrent.PeerDiscovery, [opts[:peer_id]]),
+      worker(Torrent.Processes, [opts[:peer_id]]),
       worker(Torrent.Controller, [])
     ]
     supervise(children, strategy: :one_for_one)

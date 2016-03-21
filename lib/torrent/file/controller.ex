@@ -6,8 +6,8 @@ defmodule Torrent.File.Controller do
   """
 
   # Client API
-  def start_link(info_hash) do
-    GenServer.start_link(__MODULE__, :ok, name: via_name(info_hash))
+  def start_link(peer_id, info_hash, meta) do
+    GenServer.start_link(__MODULE__, {peer_id, info_hash, meta}, name: via_name(info_hash))
   end
 
   defp via_name(info_hash),
@@ -16,7 +16,8 @@ defmodule Torrent.File.Controller do
     do: {:n, :l, {__MODULE__, info_hash}}
 
   # Server callbacks
-  def init(state) do
+  def init({peer_id, info_hash, _} = state) do
+    Torrent.PeerDiscovery.add(peer_id, info_hash)
     {:ok, state}
   end
 end
