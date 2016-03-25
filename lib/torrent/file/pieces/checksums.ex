@@ -1,6 +1,10 @@
 defmodule Torrent.File.Pieces.Checksums do
   # this module could perhaps be replaced by an ETS table
 
+  @moduledoc """
+  Hold the checksums for all the pieces in a given torrent.
+  """
+
   def start_link(info_hash, %{"pieces" => pieces}) do
     Agent.start_link(
       fn ->
@@ -12,11 +16,16 @@ defmodule Torrent.File.Pieces.Checksums do
     )
   end
 
-  def via_name(info_hash),
+  defp via_name(info_hash),
     do: {:via, :gproc, checksum_index(info_hash)}
-  def checksum_index(info_hash),
+  defp checksum_index(info_hash),
     do: {:n, :l, {__MODULE__, info_hash}}
 
+  @doc """
+  Get the checksum for a given piece index. Takes an integer as
+  the piece index and will return nil if a number out of range
+  is requested.
+  """
   def get(pid, index) when is_pid(pid),
     do: Agent.get(pid, Map, :get, [index])
   def get(info_hash, index),
