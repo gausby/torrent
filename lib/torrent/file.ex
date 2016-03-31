@@ -1,6 +1,19 @@
 defmodule Torrent.File do
   use Supervisor
 
+  @moduledoc """
+  A supervisor that hold the top-level processes running in a torrent
+  process.
+
+    - *Torrent.File.Swarm* is a supervisor that hold processes related
+      to connected peers for the given torrent.
+    - *Torrent.File.Pieces* is a supervisor that keep track of which
+      pieces has been downloaded and which pieces are pending.
+    - *Torrent.File.Controller* is a process that should be used to
+      request information from, and give orders to, the swarm and
+      pieces processes.
+  """
+
   def start_link(peer_id, info_hash, meta) do
     Supervisor.start_link(__MODULE__, {peer_id, info_hash, meta}, name: via_name(info_hash))
   end
