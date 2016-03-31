@@ -12,9 +12,9 @@ defmodule Torrent.File do
 
   def init({peer_id, info_hash, meta}) do
     children = [
-      worker(Torrent.File.Swarm, [info_hash, meta["info"]]),
-      worker(Torrent.File.Controller, [peer_id, info_hash, meta]),
-      supervisor(Torrent.File.Pieces, [info_hash, meta["info"]])
+      supervisor(Torrent.File.Swarm, [info_hash, meta["info"]]),
+      supervisor(Torrent.File.Pieces, [info_hash, meta["info"]]),
+      worker(Torrent.File.Controller, [peer_id, info_hash, meta])
     ]
     supervise(children, strategy: :one_for_one)
   end
