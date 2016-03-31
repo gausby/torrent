@@ -1,6 +1,11 @@
 defmodule Torrent.Processes do
   use Supervisor
 
+  @moduledoc """
+  A supervisor that holds the individual torrent processes. It is global
+  so system resources can be allotted to multiple simultaneous torrents.
+  """
+
   def start_link(peer_id) do
     Supervisor.start_link(__MODULE__, peer_id, name: __MODULE__)
   end
