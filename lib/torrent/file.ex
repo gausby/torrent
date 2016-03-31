@@ -15,7 +15,8 @@ defmodule Torrent.File do
   """
 
   def start_link(peer_id, info_hash, meta) do
-    Supervisor.start_link(__MODULE__, {peer_id, info_hash, meta}, name: via_name(info_hash))
+    initial_state = {peer_id, info_hash, meta}
+    Supervisor.start_link(__MODULE__, initial_state, name: via_name(info_hash))
   end
 
   defp via_name(info_hash),
