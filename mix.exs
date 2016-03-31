@@ -21,7 +21,7 @@ defmodule Torrent.Mixfile do
 
   defp deps do
     [{:bencode, "~> 0.3.0"},
-     {:magnet, github: "gausby/magnet"},
+     {:magnet, "~> 0.0.1"},
      {:bit_field_set, "~> 0.1.0"},
      {:gproc, "~> 0.5.0"},
      {:earmark, "~> 0.1", only: :dev},
