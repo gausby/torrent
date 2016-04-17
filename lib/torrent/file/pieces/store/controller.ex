@@ -10,7 +10,7 @@ defmodule Torrent.File.Pieces.Store.Controller do
 
   def start_link(info_hash, meta_info, piece_index, <<checksum::binary-size(20)>>, block_length) do
     piece_length = meta_info["piece length"]
-    blocks = div(piece_length, block_length) + (if rem(piece_length, block_length) == 0, do: 0, else: 1)
+    blocks = find_number_of_blocks_in_piece(block_length, piece_length)
     initial_state =
       %State{info_hash: info_hash,
              index: piece_index,
@@ -92,6 +92,11 @@ defmodule Torrent.File.Pieces.Store.Controller do
   end
 
   # =====================================================================
+  defp find_number_of_blocks_in_piece(block_length, piece_length) do
+    remainder = if rem(piece_length, block_length) == 0, do: 0, else: 1
+    div(piece_length, block_length) + remainder
+  end
+
   defp split_length_into_blocks(remaining, piece_length, offset \\ 0, acc \\ [])
   defp split_length_into_blocks(0, _, _, acc) do
     Enum.reverse(acc)
