@@ -1,5 +1,5 @@
 defmodule Torrent.File.Pieces.Store.Controller do
-  @behaviour :gen_fsm
+  use GenFSM
 
   require Logger
 
@@ -20,19 +20,19 @@ defmodule Torrent.File.Pieces.Store.Controller do
              block_length: block_length,
              checksum: checksum}
 
-    :gen_fsm.start_link(__MODULE__, initial_state, [])
+    GenFSM.start_link(__MODULE__, initial_state, [])
   end
 
   # public api
   def report_block(pid, {:has, count}) do
-    :gen_fsm.send_event(pid, {:has, count})
+    GenFSM.send_event(pid, {:has, count})
   end
 
   # states
   def awaiting_blocks({:has, offset}, state) do
     new_state = %State{state|has: MapSet.put(state.has, offset)}
     if MapSet.size(new_state.has) == state.blocks do
-      :gen_fsm.send_event(self, :validate)
+      GenFSM.send_event(self, :validate)
       {:next_state, :validating_piece, new_state}
     else
       {:next_state, :awaiting_blocks, new_state}
@@ -55,7 +55,7 @@ defmodule Torrent.File.Pieces.Store.Controller do
     piece_data = Enum.join(candidates)
 
     if :crypto.hash(:sha, piece_data) == state.checksum do
-      :gen_fsm.send_event(self, :complete)
+      GenFSM.send_event(self, :complete)
       {:next_state, :got_piece, state}
     else
       # todo, start listening for new candidates
@@ -89,26 +89,6 @@ defmodule Torrent.File.Pieces.Store.Controller do
     end
 
     {:ok, :awaiting_blocks, state}
-  end
-
-  def handle_info(_, _state_name, state) do
-    {:stop, :unexpected_message, state}
-  end
-
-  def handle_event(_, _state_name, state) do
-    {:stop, :unexpected_event, state}
-  end
-
-  def handle_sync_event(_event, _from, _state_name, state) do
-    {:stop, :unexpected_event, state}
-  end
-
-  def code_change(_old_version, state_name, state, _extra) do
-    {:ok, state_name, state}
-  end
-
-  def terminate(reason, _state_name, _state) do
-    reason
   end
 
   # =====================================================================

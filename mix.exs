@@ -24,6 +24,7 @@ defmodule Torrent.Mixfile do
      {:magnet, "~> 0.0.1"},
      {:bit_field_set, "~> 0.1.0"},
      {:gproc, "~> 0.5.0"},
+     {:gen_fsm, "~> 0.1.0"},
      {:earmark, "~> 0.1", only: :dev},
      {:ex_doc, "~> 0.11", only: :dev}]
   end
